@@ -1,0 +1,572 @@
+{
+  "info": {
+    "_postman_id": "graduation-backend-admin-api",
+    "name": "🌱 Graduation Backend - Admin API",
+    "description": "Postman Collection لاختبار Admin Panel APIs\n\n## الترتيب المطلوب للاختبار:\n1. Check Has Admin\n2. Create First Admin (إذا لم يوجد)\n3. Login as Admin\n4. استخدم الـ Token في باقي الطلبات\n\n## ملاحظات:\n- الـ Base URL: http://localhost:8081\n- جميع الـ Admin endpoints تتطلب Bearer Token",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "1. Check Has Admin",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/has-admin",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "has-admin"]
+            },
+            "description": "التحقق من وجود مسؤول في النظام"
+          }
+        },
+        {
+          "name": "2. Create First Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@gharsih.com\",\n  \"password\": \"Admin@123\",\n  \"fullName\": \"مسؤول النظام\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/create-admin",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "create-admin"]
+            },
+            "description": "إنشاء أول حساب مسؤول - يعمل بدون توثيق إذا لم يوجد مسؤول"
+          }
+        },
+        {
+          "name": "3. Login (Get Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.accessToken) {",
+                  "    pm.collectionVariables.set('adminToken', jsonData.accessToken);",
+                  "    console.log('Token saved successfully!');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@gharsih.com\",\n  \"password\": \"Admin@123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "تسجيل الدخول للحصول على Token - يتم حفظه تلقائياً"
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 Admin User Management",
+      "item": [
+        {
+          "name": "Promote User to Admin",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/1/promote",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "1", "promote"]
+            },
+            "description": "ترقية مستخدم إلى مسؤول"
+          }
+        },
+        {
+          "name": "Demote Admin to User",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/users/2/demote",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "users", "2", "demote"]
+            },
+            "description": "إزالة صلاحية المسؤول من مستخدم"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🌿 Plant Management",
+      "item": [
+        {
+          "name": "1. Create Plant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.collectionVariables.set('plantId', jsonData.id);",
+                  "    console.log('Plant ID saved: ' + jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameAr\": \"طماطم\",\n  \"nameEn\": \"Tomato\",\n  \"descriptionAr\": \"الطماطم من أكثر الخضروات استخداماً في المطبخ العربي\",\n  \"descriptionEn\": \"Tomatoes are one of the most used vegetables in cooking\",\n  \"category\": \"VEGETABLE\",\n  \"difficulty\": \"EASY\",\n  \"wateringFrequencyDays\": 2,\n  \"sunlightHours\": 6,\n  \"growthDurationDays\": 90,\n  \"spacingCm\": 60,\n  \"plantingDepthCm\": 1,\n  \"harvestInstructionsAr\": \"احصد الثمار عندما تصبح حمراء بالكامل\",\n  \"harvestInstructionsEn\": \"Harvest when fruits are fully red\",\n  \"plantingTipsAr\": \"ازرع في مكان مشمس مع تربة جيدة الصرف\",\n  \"plantingTipsEn\": \"Plant in sunny location with well-draining soil\",\n  \"images\": [\n    {\n      \"imageUrl\": \"https://example.com/tomato1.jpg\",\n      \"altTextAr\": \"صورة طماطم ناضجة\",\n      \"altTextEn\": \"Ripe tomato image\",\n      \"isPrimary\": true\n    },\n    {\n      \"imageUrl\": \"https://example.com/tomato2.jpg\",\n      \"altTextAr\": \"شتلة طماطم\",\n      \"altTextEn\": \"Tomato seedling\",\n      \"isPrimary\": false\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plants",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plants"]
+            },
+            "description": "إنشاء نبتة جديدة مع صور"
+          }
+        },
+        {
+          "name": "2. Get All Plants (Paginated)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plants?page=0&size=10&sort=nameAr,asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plants"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                },
+                {
+                  "key": "sort",
+                  "value": "nameAr,asc"
+                }
+              ]
+            },
+            "description": "جلب قائمة النباتات مع الـ pagination"
+          }
+        },
+        {
+          "name": "3. Get Plant by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plants", "{{plantId}}"]
+            },
+            "description": "جلب تفاصيل نبتة محددة"
+          }
+        },
+        {
+          "name": "4. Search Plants",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plants/search?keyword=طماطم&page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plants", "search"],
+              "query": [
+                {
+                  "key": "keyword",
+                  "value": "طماطم"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "البحث في النباتات بالعربي أو الإنجليزي"
+          }
+        },
+        {
+          "name": "5. Get Plants by Category",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plants/category/VEGETABLE?page=0&size=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plants", "category", "VEGETABLE"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "فلترة النباتات حسب الفئة: VEGETABLE, FRUIT, HERB, FLOWER, TREE"
+          }
+        },
+        {
+          "name": "6. Update Plant",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameAr\": \"طماطم كرزية\",\n  \"nameEn\": \"Cherry Tomato\",\n  \"descriptionAr\": \"طماطم صغيرة الحجم حلوة المذاق\",\n  \"descriptionEn\": \"Small sweet tomatoes\",\n  \"category\": \"VEGETABLE\",\n  \"difficulty\": \"EASY\",\n  \"wateringFrequencyDays\": 2,\n  \"sunlightHours\": 8,\n  \"growthDurationDays\": 75,\n  \"spacingCm\": 45,\n  \"plantingDepthCm\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plants", "{{plantId}}"]
+            },
+            "description": "تحديث بيانات نبتة"
+          }
+        },
+        {
+          "name": "7. Delete Plant",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plants", "{{plantId}}"]
+            },
+            "description": "حذف نبتة"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🖼️ Plant Images",
+      "item": [
+        {
+          "name": "1. Add Image to Plant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.collectionVariables.set('imageId', jsonData.id);",
+                  "    console.log('Image ID saved: ' + jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageUrl\": \"https://example.com/tomato-harvest.jpg\",\n  \"altTextAr\": \"حصاد الطماطم\",\n  \"altTextEn\": \"Tomato harvest\",\n  \"isPrimary\": false,\n  \"displayOrder\": 3\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}/images",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plants", "{{plantId}}", "images"]
+            },
+            "description": "إضافة صورة جديدة لنبتة"
+          }
+        },
+        {
+          "name": "2. Set Primary Image",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}/images/{{imageId}}/primary",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plants", "{{plantId}}", "images", "{{imageId}}", "primary"]
+            },
+            "description": "تعيين صورة كصورة رئيسية"
+          }
+        },
+        {
+          "name": "3. Reorder Images",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"imageIds\": [3, 1, 2]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}/images/reorder",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plants", "{{plantId}}", "images", "reorder"]
+            },
+            "description": "إعادة ترتيب صور النبتة"
+          }
+        },
+        {
+          "name": "4. Delete Image",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}/images/{{imageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plants", "{{plantId}}", "images", "{{imageId}}"]
+            },
+            "description": "حذف صورة من نبتة"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🎬 Plant Video",
+      "item": [
+        {
+          "name": "Update Planting Video",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"plantingVideoUrl\": \"https://youtube.com/watch?v=abc123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}/video",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plants", "{{plantId}}", "video"]
+            },
+            "description": "تحديث رابط فيديو الزراعة"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🧪 Test Scenarios",
+      "item": [
+        {
+          "name": "❌ Unauthorized Access (No Token)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plants",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plants"]
+            },
+            "description": "اختبار الوصول بدون Token - يجب أن يرجع 401"
+          }
+        },
+        {
+          "name": "❌ Plant Not Found",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plants/99999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plants", "99999"]
+            },
+            "description": "اختبار جلب نبتة غير موجودة - يجب أن يرجع 404"
+          }
+        },
+        {
+          "name": "❌ Invalid Plant Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nameAr\": \"\",\n  \"nameEn\": \"\",\n  \"category\": \"INVALID_CATEGORY\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plants",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plants"]
+            },
+            "description": "اختبار إرسال بيانات غير صالحة - يجب أن يرجع 400"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Health & Info",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "التحقق من صحة التطبيق"
+          }
+        },
+        {
+          "name": "Swagger UI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/swagger-ui/index.html",
+              "host": ["{{baseUrl}}"],
+              "path": ["swagger-ui", "index.html"]
+            },
+            "description": "فتح واجهة Swagger"
+          }
+        }
+      ]
+    }
+  ]
+}
