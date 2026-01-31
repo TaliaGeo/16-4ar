@@ -26,6 +26,16 @@ public class AdminUserService {
     private final PasswordEncoder passwordEncoder;
     
     /**
+     * الحصول على صلاحية المسؤول (يدعم كلا التسميتين)
+     * Get admin role (supports both naming conventions)
+     */
+    private Role getAdminRole() {
+        return roleRepository.findByName("ROLE_ADMIN")
+                .or(() -> roleRepository.findByName("ADMIN"))
+                .orElseThrow(() -> new ResourceNotFoundException("Role", "name", "ADMIN"));
+    }
+    
+    /**
      * ترقية مستخدم إلى مسؤول
      * Promote a user to admin role
      */
@@ -35,8 +45,7 @@ public class AdminUserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
         
-        Role adminRole = roleRepository.findByName("ROLE_ADMIN")
-                .orElseThrow(() -> new ResourceNotFoundException("Role", "name", "ROLE_ADMIN"));
+        Role adminRole = getAdminRole();
         
         if (user.getRoles().contains(adminRole)) {
             throw new BadRequestException("المستخدم لديه صلاحية المسؤول بالفعل - User already has admin role");
@@ -58,8 +67,7 @@ public class AdminUserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
         
-        Role adminRole = roleRepository.findByName("ROLE_ADMIN")
-                .orElseThrow(() -> new ResourceNotFoundException("Role", "name", "ROLE_ADMIN"));
+        Role adminRole = getAdminRole();
         
         if (!user.getRoles().contains(adminRole)) {
             throw new BadRequestException("المستخدم ليس مسؤولاً - User is not an admin");
@@ -117,7 +125,11 @@ public class AdminUserService {
      */
     @Transactional(readOnly = true)
     public boolean hasAdminUser() {
-        Role adminRole = roleRepository.findByName("ROLE_ADMIN").orElse(null);
+        // Try both naming conventions (ADMIN and ROLE_ADMIN)
+        Role adminRole = roleRepository.findByName("ROLE_ADMIN")
+                .or(() -> roleRepository.findByName("ADMIN"))
+                .orElse(null);
+        
         if (adminRole == null) return false;
         
         return userRepository.findAll().stream()
