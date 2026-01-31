@@ -3,6 +3,8 @@ package group.g.graduation.backend.common.repository;
 import group.g.graduation.backend.common.model.PlantingQuestion;
 import group.g.graduation.backend.common.model.QuestionOption;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -24,4 +26,12 @@ public interface QuestionOptionRepository extends JpaRepository<QuestionOption, 
     
     // التحقق من وجود خيار
     boolean existsByQuestionIdAndOptionKey(Long questionId, String optionKey);
+    
+    // جلب الخيار مع السؤال (لتجنب LazyInitializationException)
+    @Query("SELECT o FROM QuestionOption o LEFT JOIN FETCH o.question WHERE o.id = :id")
+    Optional<QuestionOption> findByIdWithQuestion(@Param("id") Long id);
+    
+    // جلب كل الخيارات مع الأسئلة
+    @Query("SELECT o FROM QuestionOption o LEFT JOIN FETCH o.question")
+    List<QuestionOption> findAllWithQuestion();
 }

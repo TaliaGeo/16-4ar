@@ -1,0 +1,801 @@
+{
+  "info": {
+    "name": "Task 9 - Planting Questions APIs",
+    "description": "Admin APIs for managing planting questions and options for plant recommendation - أسئلة إضافة المحصول",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "🔐 Auth",
+      "item": [
+        {
+          "name": "1. Login (Get Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('token', jsonData.token);",
+                  "    pm.test('Token saved successfully', function() {",
+                  "        pm.expect(jsonData.token).to.be.a('string');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/api/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Stats & Check",
+      "item": [
+        {
+          "name": "2. Check if Defaults Exist",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response has exists field', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('exists');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/planting-questions/check-defaults"
+          }
+        },
+        {
+          "name": "3. Get Question Stats",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Stats have all fields', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('totalQuestions');",
+                  "    pm.expect(jsonData).to.have.property('activeQuestions');",
+                  "    pm.expect(jsonData).to.have.property('requiredQuestions');",
+                  "    pm.expect(jsonData).to.have.property('totalOptions');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/planting-questions/stats"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🚀 Initialize",
+      "item": [
+        {
+          "name": "4. Initialize Default Questions (5 Required + 5 Optional)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response has message and stats', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('message');",
+                  "    pm.expect(jsonData).to.have.property('stats');",
+                  "    console.log('Total Questions: ' + jsonData.stats.totalQuestions);",
+                  "    console.log('Total Options: ' + jsonData.stats.totalOptions);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/admin/planting-questions/initialize"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📋 Questions CRUD",
+      "item": [
+        {
+          "name": "5. Get All Questions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response is array', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    console.log('Total questions: ' + jsonData.length);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/planting-questions"
+          }
+        },
+        {
+          "name": "6. Get All Questions WITH Options",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Questions have options', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    if (jsonData.length > 0) {",
+                  "        pm.expect(jsonData[0]).to.have.property('options');",
+                  "        console.log('First question: ' + jsonData[0].questionTextAr);",
+                  "        console.log('Options count: ' + jsonData[0].options.length);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/planting-questions/with-options"
+          }
+        },
+        {
+          "name": "7. Get Active Questions Only",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('All questions are active', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    jsonData.forEach(function(q) {",
+                  "        pm.expect(q.isActive).to.be.true;",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/planting-questions/active"
+          }
+        },
+        {
+          "name": "8. Get Active Questions WITH Options (Mobile App)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Response has questions with options', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    jsonData.forEach(function(q) {",
+                  "        pm.expect(q).to.have.property('options');",
+                  "        pm.expect(q.isActive).to.be.true;",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/planting-questions/active/with-options"
+          }
+        },
+        {
+          "name": "9. Get Question by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Question has correct structure', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('questionTextAr');",
+                  "    pm.expect(jsonData).to.have.property('questionKey');",
+                  "    pm.expect(jsonData).to.have.property('options');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/planting-questions/1"
+          }
+        },
+        {
+          "name": "10. Get Question by Key (site)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Question key is site', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.questionKey).to.equal('site');",
+                  "    console.log('Question: ' + jsonData.questionTextAr);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/planting-questions/key/site"
+          }
+        },
+        {
+          "name": "11. Get Question by Key (light)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/planting-questions/key/light"
+          }
+        },
+        {
+          "name": "12. Get Question by Key (container)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/planting-questions/key/container"
+          }
+        },
+        {
+          "name": "13. Get Question by Key (water)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/planting-questions/key/water"
+          }
+        },
+        {
+          "name": "14. Get Question by Key (soil)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/planting-questions/key/soil"
+          }
+        },
+        {
+          "name": "15. Get Question by Key (prefs - multi-select)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/planting-questions/key/prefs"
+          }
+        },
+        {
+          "name": "16. Create New Question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function() {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Question created with correct data', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.questionKey).to.equal('test_question');",
+                  "    pm.collectionVariables.set('newQuestionId', jsonData.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionTextAr\": \"سؤال تجريبي للاختبار\",\n  \"questionTextEn\": \"Test question\",\n  \"questionKey\": \"test_question\",\n  \"isRequired\": false,\n  \"allowMultiple\": false,\n  \"displayOrder\": 99,\n  \"isActive\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/planting-questions"
+          }
+        },
+        {
+          "name": "17. Create Question WITH Options",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function() {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Question created with options', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.options).to.be.an('array');",
+                  "    pm.expect(jsonData.options.length).to.equal(3);",
+                  "    pm.collectionVariables.set('questionWithOptionsId', jsonData.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionTextAr\": \"ما هي خبرتك في الزراعة؟\",\n  \"questionTextEn\": \"What is your gardening experience?\",\n  \"questionKey\": \"experience\",\n  \"isRequired\": false,\n  \"allowMultiple\": false,\n  \"isActive\": true,\n  \"options\": [\n    {\n      \"optionTextAr\": \"مبتدئ\",\n      \"optionTextEn\": \"Beginner\",\n      \"optionKey\": \"beginner\"\n    },\n    {\n      \"optionTextAr\": \"متوسط\",\n      \"optionTextEn\": \"Intermediate\",\n      \"optionKey\": \"intermediate\"\n    },\n    {\n      \"optionTextAr\": \"خبير\",\n      \"optionTextEn\": \"Expert\",\n      \"optionKey\": \"expert\"\n    }\n  ]\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/planting-questions/with-options"
+          }
+        },
+        {
+          "name": "18. Update Question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Question updated', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.questionTextAr).to.include('محدث');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionTextAr\": \"سؤال تجريبي محدث\",\n  \"questionTextEn\": \"Updated test question\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/planting-questions/{{newQuestionId}}"
+          }
+        },
+        {
+          "name": "19. Toggle Question Active",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Active status toggled', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('isActive');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/admin/planting-questions/{{newQuestionId}}/toggle-active"
+          }
+        },
+        {
+          "name": "20. Delete Question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Delete message received', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('حذف');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/planting-questions/{{newQuestionId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔘 Options CRUD",
+      "item": [
+        {
+          "name": "21. Get Options for Question (site)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Options returned', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    console.log('Options count: ' + jsonData.length);",
+                  "    if (jsonData.length > 0) {",
+                  "        pm.collectionVariables.set('optionId', jsonData[0].id);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/planting-questions/1/options"
+          }
+        },
+        {
+          "name": "22. Get Option by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Option has correct structure', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('optionTextAr');",
+                  "    pm.expect(jsonData).to.have.property('optionKey');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/planting-questions/options/{{optionId}}"
+          }
+        },
+        {
+          "name": "23. Create Option for Question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function() {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Option created', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.optionKey).to.equal('new_option');",
+                  "    pm.collectionVariables.set('newOptionId', jsonData.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"optionTextAr\": \"خيار جديد للاختبار\",\n  \"optionTextEn\": \"New test option\",\n  \"optionKey\": \"new_option\",\n  \"isActive\": true\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/planting-questions/1/options"
+          }
+        },
+        {
+          "name": "24. Create Multiple Options (Batch)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function() {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Multiple options created', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    pm.expect(jsonData.length).to.be.at.least(1);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"optionTextAr\": \"خيار دفعي 1\",\n    \"optionTextEn\": \"Batch option 1\",\n    \"optionKey\": \"batch_1\"\n  },\n  {\n    \"optionTextAr\": \"خيار دفعي 2\",\n    \"optionTextEn\": \"Batch option 2\",\n    \"optionKey\": \"batch_2\"\n  }\n]"
+            },
+            "url": "{{baseUrl}}/api/admin/planting-questions/1/options/batch"
+          }
+        },
+        {
+          "name": "25. Update Option",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Option updated', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.optionTextAr).to.include('محدث');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"optionTextAr\": \"خيار محدث\",\n  \"optionTextEn\": \"Updated option\"\n}"
+            },
+            "url": "{{baseUrl}}/api/admin/planting-questions/options/{{newOptionId}}"
+          }
+        },
+        {
+          "name": "26. Toggle Option Active",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Option active toggled', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('isActive');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/admin/planting-questions/options/{{newOptionId}}/toggle-active"
+          }
+        },
+        {
+          "name": "27. Delete Option",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Option deleted', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('حذف');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/admin/planting-questions/options/{{newOptionId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔄 Reorder",
+      "item": [
+        {
+          "name": "28. Reorder Questions",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Reorder message', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('ترتيب');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[1, 2, 3, 4, 5]"
+            },
+            "url": "{{baseUrl}}/api/admin/planting-questions/reorder"
+          }
+        },
+        {
+          "name": "29. Reorder Options within Question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Reorder options message', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('ترتيب');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[1, 2, 3, 4, 5]"
+            },
+            "url": "{{baseUrl}}/api/admin/planting-questions/1/options/reorder"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🧪 Full Workflow Test",
+      "item": [
+        {
+          "name": "30. Final Stats Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function() {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Stats summary', function() {",
+                  "    var jsonData = pm.response.json();",
+                  "    console.log('=== Final Stats ===');",
+                  "    console.log('Total Questions: ' + jsonData.totalQuestions);",
+                  "    console.log('Active Questions: ' + jsonData.activeQuestions);",
+                  "    console.log('Required Questions: ' + jsonData.requiredQuestions);",
+                  "    console.log('Total Options: ' + jsonData.totalOptions);",
+                  "    console.log('Active Options: ' + jsonData.activeOptions);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/planting-questions/stats"
+          }
+        }
+      ]
+    }
+  ]
+}

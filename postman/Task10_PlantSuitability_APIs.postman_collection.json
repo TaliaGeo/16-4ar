@@ -1,0 +1,1056 @@
+{
+  "info": {
+    "name": "Task 10 - PlantSuitability & Recommendation APIs",
+    "description": "واجهات برمجة التطبيقات لإدارة ملاءمة النباتات وتوصيات النباتات للمستخدمين\n\nAPIs for managing plant suitability scores and plant recommendations based on user answers",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "plantId",
+      "value": ""
+    },
+    {
+      "key": "optionId",
+      "value": ""
+    },
+    {
+      "key": "suitabilityId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Login (Get Token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('token', jsonData.accessToken);",
+                  "    console.log('Token saved successfully');",
+                  "}",
+                  "",
+                  "pm.test('Login successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Token received', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.accessToken).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "تسجيل الدخول للحصول على التوكن"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📋 Prerequisites - Get IDs",
+      "item": [
+        {
+          "name": "Get All Plants (Get Plant ID)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.length > 0) {",
+                  "        pm.collectionVariables.set('plantId', jsonData[0].id);",
+                  "        console.log('Plant ID saved: ' + jsonData[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plants",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plants"]
+            },
+            "description": "جلب النباتات للحصول على Plant ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Questions with Options (Get Option ID)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.length > 0 && jsonData[0].options && jsonData[0].options.length > 0) {",
+                  "        pm.collectionVariables.set('optionId', jsonData[0].options[0].id);",
+                  "        console.log('Option ID saved: ' + jsonData[0].options[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/planting-questions/with-options",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "planting-questions", "with-options"]
+            },
+            "description": "جلب الأسئلة مع الخيارات للحصول على Option ID"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "✨ CRUD - Plant Suitability",
+      "item": [
+        {
+          "name": "1. Create Suitability",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Suitability created', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.id).to.be.a('number');",
+                  "    pm.expect(jsonData.score).to.equal(85);",
+                  "    pm.expect(jsonData.scoreLevel).to.equal('excellent');",
+                  "    pm.collectionVariables.set('suitabilityId', jsonData.id);",
+                  "    console.log('Suitability ID saved: ' + jsonData.id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"plantId\": {{plantId}},\n    \"optionId\": {{optionId}},\n    \"score\": 85,\n    \"adjustmentTipAr\": \"هذا النبات يناسب هذا الخيار بشكل ممتاز\",\n    \"adjustmentTipEn\": \"This plant suits this option excellently\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability"]
+            },
+            "description": "إنشاء سجل ملاءمة جديد لنبات وخيار"
+          },
+          "response": []
+        },
+        {
+          "name": "2. Create Bulk Suitabilities",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Multiple suitabilities created', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    pm.expect(jsonData.length).to.be.greaterThan(0);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"suitabilities\": [\n        {\n            \"plantId\": {{plantId}},\n            \"optionId\": {{optionId}},\n            \"score\": 90,\n            \"adjustmentTipAr\": \"ممتاز جداً\",\n            \"adjustmentTipEn\": \"Excellent\"\n        }\n    ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/bulk",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "bulk"]
+            },
+            "description": "إنشاء عدة سجلات ملاءمة دفعة واحدة"
+          },
+          "response": []
+        },
+        {
+          "name": "3. Get Suitability by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Suitability data correct', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.id).to.be.a('number');",
+                  "    pm.expect(jsonData.score).to.be.a('number');",
+                  "    pm.expect(jsonData.scoreLevel).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/{{suitabilityId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "{{suitabilityId}}"]
+            },
+            "description": "جلب سجل ملاءمة بالمعرّف"
+          },
+          "response": []
+        },
+        {
+          "name": "4. Get All Suitabilities",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability"]
+            },
+            "description": "جلب جميع سجلات الملاءمة"
+          },
+          "response": []
+        },
+        {
+          "name": "5. Get Suitabilities by Plant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/plant/{{plantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "plant", "{{plantId}}"]
+            },
+            "description": "جلب جميع سجلات ملاءمة نبات معين"
+          },
+          "response": []
+        },
+        {
+          "name": "6. Get Suitabilities by Option",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/option/{{optionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "option", "{{optionId}}"]
+            },
+            "description": "جلب جميع سجلات ملاءمة خيار معين"
+          },
+          "response": []
+        },
+        {
+          "name": "7. Get Suitability by Plant and Option",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns suitability object', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.id).to.be.a('number');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/plant/{{plantId}}/option/{{optionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "plant", "{{plantId}}", "option", "{{optionId}}"]
+            },
+            "description": "جلب سجل ملاءمة لنبات وخيار معينين"
+          },
+          "response": []
+        },
+        {
+          "name": "8. Update Suitability",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Score updated', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.score).to.equal(75);",
+                  "    pm.expect(jsonData.scoreLevel).to.equal('good');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"score\": 75,\n    \"adjustmentTipAr\": \"نصيحة محدثة: يمكن تحسين النتائج\",\n    \"adjustmentTipEn\": \"Updated tip: Results can be improved\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/{{suitabilityId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "{{suitabilityId}}"]
+            },
+            "description": "تحديث سجل ملاءمة"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "📊 Statistics & Analytics",
+      "item": [
+        {
+          "name": "1. Get Plant Suitability Stats",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Stats returned', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.plantId).to.be.a('number');",
+                  "    pm.expect(jsonData.totalSuitabilities).to.be.a('number');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/stats/plant/{{plantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "stats", "plant", "{{plantId}}"]
+            },
+            "description": "إحصائيات ملاءمة نبات"
+          },
+          "response": []
+        },
+        {
+          "name": "2. Get All Plants Average Scores",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/stats/plants-average",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "stats", "plants-average"]
+            },
+            "description": "جميع النباتات مع متوسط الدرجات"
+          },
+          "response": []
+        },
+        {
+          "name": "3. Count Suitabilities by Score Level",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns count object', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('object');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/stats/plant/{{plantId}}/by-level",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "stats", "plant", "{{plantId}}", "by-level"]
+            },
+            "description": "عدد الملاءمات حسب مستوى الدرجة"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🌱 Plant Recommendations",
+      "item": [
+        {
+          "name": "1. Get Recommendations (Basic)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns recommendations array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"answers\": {\n        \"site\": \"balcony\",\n        \"light\": \"full_sun\",\n        \"container\": \"pot\",\n        \"water\": \"daily\",\n        \"soil\": \"clay\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/recommendations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "recommendations"]
+            },
+            "description": "الحصول على توصيات النباتات بناءً على إجابات المستخدم"
+          },
+          "response": []
+        },
+        {
+          "name": "2. Get Recommendations with Options",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns limited recommendations', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"answers\": {\n        \"site\": \"balcony\",\n        \"light\": \"full_sun\",\n        \"container\": \"pot\",\n        \"water\": \"daily\",\n        \"soil\": \"clay\",\n        \"prefs\": [\"medicinal\", \"aromatic\"]\n    },\n    \"limit\": 5,\n    \"minMatchPercentage\": 50\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/recommendations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "recommendations"]
+            },
+            "description": "توصيات مع خيارات متعددة وفلترة"
+          },
+          "response": []
+        },
+        {
+          "name": "3. Get Top N Recommendations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns max 3 recommendations', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "    pm.expect(jsonData.length).to.be.at.most(3);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"answers\": {\n        \"site\": \"rooftop\",\n        \"light\": \"partial_shade\",\n        \"container\": \"raised_bed\",\n        \"water\": \"twice_weekly\",\n        \"soil\": \"loamy\"\n    }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/recommendations/top/3",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "recommendations", "top", "3"]
+            },
+            "description": "الحصول على أفضل 3 توصيات"
+          },
+          "response": []
+        },
+        {
+          "name": "4. Calculate Match for Specific Plant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns recommendation object', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.plantId).to.be.a('number');",
+                  "    pm.expect(jsonData.matchPercentage).to.be.a('number');",
+                  "    pm.expect(jsonData.matchLevel).to.be.a('string');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"site\": \"balcony\",\n    \"light\": \"full_sun\",\n    \"container\": \"pot\",\n    \"water\": \"daily\",\n    \"soil\": \"sandy\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/recommendations/plant/{{plantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "recommendations", "plant", "{{plantId}}"]
+            },
+            "description": "حساب نسبة التطابق لنبات معين"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "⚙️ Setup & Initialization",
+      "item": [
+        {
+          "name": "1. Initialize Plant Suitabilities",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Returns suitabilities array', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/initialize/plant/{{plantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "initialize", "plant", "{{plantId}}"]
+            },
+            "description": "تهيئة سجلات الملاءمة لنبات (بدرجة افتراضية 50)"
+          },
+          "response": []
+        },
+        {
+          "name": "2. Copy Suitabilities Between Plants",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Returns copied suitabilities', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/copy/{{plantId}}/to/2",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "copy", "{{plantId}}", "to", "2"]
+            },
+            "description": "نسخ سجلات الملاءمة من نبات إلى آخر"
+          },
+          "response": []
+        },
+        {
+          "name": "3. Update Plant Suitabilities Batch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Returns updated suitabilities', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.be.an('array');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n    {\n        \"optionId\": {{optionId}},\n        \"score\": 95,\n        \"adjustmentTipAr\": \"مناسب جداً\",\n        \"adjustmentTipEn\": \"Very suitable\"\n    }\n]"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/plant/{{plantId}}/batch",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "plant", "{{plantId}}", "batch"]
+            },
+            "description": "تحديث عدة سجلات ملاءمة لنبات دفعة واحدة"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🗑️ Delete Operations",
+      "item": [
+        {
+          "name": "1. Delete Suitability by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Delete message', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('deleted');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/{{suitabilityId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "{{suitabilityId}}"]
+            },
+            "description": "حذف سجل ملاءمة"
+          },
+          "response": []
+        },
+        {
+          "name": "2. Delete Suitabilities by Plant",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Delete message', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('deleted');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/plant/{{plantId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "plant", "{{plantId}}"]
+            },
+            "description": "حذف جميع سجلات ملاءمة نبات"
+          },
+          "response": []
+        },
+        {
+          "name": "3. Delete Suitability by Plant and Option",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Delete message', function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.message).to.include('deleted');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/plant-suitability/plant/{{plantId}}/option/{{optionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "admin", "plant-suitability", "plant", "{{plantId}}", "option", "{{optionId}}"]
+            },
+            "description": "حذف سجل ملاءمة لنبات وخيار"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
+}
