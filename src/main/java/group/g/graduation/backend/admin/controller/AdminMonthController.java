@@ -33,7 +33,7 @@ import java.util.Map;
 @Slf4j
 @Tag(name = "Admin - Months & Planting Calendar", description = "إدارة الشهور وتقويم الزراعة")
 @SecurityRequirement(name = "bearerAuth")
-@PreAuthorize("hasAnyRole('ADMIN', 'ROLE_ADMIN')")
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminMonthController {
     
     private final AdminMonthService monthService;

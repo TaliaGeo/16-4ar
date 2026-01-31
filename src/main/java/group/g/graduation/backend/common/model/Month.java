@@ -3,6 +3,7 @@ package group.g.graduation.backend.common.model;
 import group.g.graduation.backend.common.enums.Season;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -16,6 +17,7 @@ import java.util.List;
 @Entity
 @Table(name = "months")
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Month {
