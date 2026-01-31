@@ -18,6 +18,8 @@ public class PlantImageResponse {
     
     private Long plantId;
     
+    private String plantNameAr;
+    
     private String imageUrl;
     
     private String altTextAr;
