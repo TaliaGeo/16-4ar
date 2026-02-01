@@ -13,8 +13,10 @@ import org.springframework.core.annotation.Order;
  * Data Initializer - تهيئة البيانات الأساسية
  * 
  * يتم تشغيله عند بدء التطبيق لإنشاء:
- * - ROLE_ADMIN: صلاحيات المسؤول
- * - ROLE_USER: صلاحيات المستخدم العادي
+ * - ADMIN: صلاحيات المسؤول
+ * - USER: صلاحيات المستخدم العادي
+ * 
+ * ملاحظة: الأسماء بدون ROLE_ لأن UserDetailsServiceImpl يضيف ROLE_ تلقائياً
  */
 @Configuration
 @RequiredArgsConstructor
@@ -29,11 +31,11 @@ public class DataInitializer {
         return args -> {
             log.info("🔄 Initializing roles...");
             
-            // إنشاء ROLE_ADMIN
-            createRoleIfNotExists("ROLE_ADMIN", "Administrator role with full access - صلاحيات المسؤول الكاملة");
+            // إنشاء ADMIN (يصبح ROLE_ADMIN في Spring Security)
+            createRoleIfNotExists("ADMIN", "Administrator role with full access - صلاحيات المسؤول الكاملة");
             
-            // إنشاء ROLE_USER
-            createRoleIfNotExists("ROLE_USER", "Regular user role - صلاحيات المستخدم العادي");
+            // إنشاء USER (يصبح ROLE_USER في Spring Security)
+            createRoleIfNotExists("USER", "Regular user role - صلاحيات المستخدم العادي");
             
             log.info("✅ Roles initialized successfully");
         };
