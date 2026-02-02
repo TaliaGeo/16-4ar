@@ -26,19 +26,28 @@ public class AdminUserService {
     private final PasswordEncoder passwordEncoder;
     
     /**
-     * الحصول على صلاحية المسؤول (يدعم كلا التسميتين)
-     * Get admin role (supports both naming conventions)
+     * الحصول على صلاحية المسؤول
+     * Get admin role
      */
     private Role getAdminRole() {
-        return roleRepository.findByName("ROLE_ADMIN")
-                .or(() -> roleRepository.findByName("ADMIN"))
+        return roleRepository.findByName("ADMIN")
                 .orElseThrow(() -> new ResourceNotFoundException("Role", "name", "ADMIN"));
+    }
+    
+    /**
+     * الحصول على صلاحية المستخدم العادي
+     * Get user role
+     */
+    private Role getUserRole() {
+        return roleRepository.findByName("USER")
+                .orElseThrow(() -> new ResourceNotFoundException("Role", "name", "USER"));
     }
     
     /**
      * ترقية مستخدم إلى مسؤول
      * Promote a user to admin role
      */
+    @Transactional
     public void promoteToAdmin(Long userId) {
         log.info("Promoting user {} to admin", userId);
         
@@ -47,20 +56,28 @@ public class AdminUserService {
         
         Role adminRole = getAdminRole();
         
-        if (user.getRoles().contains(adminRole)) {
-            throw new BadRequestException("المستخدم لديه صلاحية المسؤول بالفعل - User already has admin role");
+        // Idempotent: if already admin, just return success
+        if (user.getRoles().contains(adminRole) && user.getRoles().size() == 1) {
+            log.info("User {} already has ADMIN role only, no changes needed", userId);
+            return;
         }
         
+        // Clear all existing roles
+        user.getRoles().clear();
+        
+        // Add ADMIN role only (user should have single role)
         user.getRoles().add(adminRole);
+        
         userRepository.save(user);
         
-        log.info("User {} promoted to admin successfully", userId);
+        log.info("User {} promoted to admin successfully. Final role: ADMIN", userId);
     }
     
     /**
      * إزالة صلاحية المسؤول من مستخدم
      * Remove admin role from a user
      */
+    @Transactional
     public void demoteFromAdmin(Long userId) {
         log.info("Demoting user {} from admin", userId);
         
@@ -68,9 +85,16 @@ public class AdminUserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
         
         Role adminRole = getAdminRole();
+        Role userRole = getUserRole();
         
         if (!user.getRoles().contains(adminRole)) {
             throw new BadRequestException("المستخدم ليس مسؤولاً - User is not an admin");
+        }
+        
+        // Idempotent: if already USER only, just return success
+        if (user.getRoles().contains(userRole) && user.getRoles().size() == 1) {
+            log.info("User {} already has USER role only, no changes needed", userId);
+            return;
         }
         
         // التحقق من عدم إزالة آخر مسؤول
@@ -82,10 +106,15 @@ public class AdminUserService {
             throw new BadRequestException("لا يمكن إزالة آخر مسؤول في النظام - Cannot remove the last admin");
         }
         
-        user.getRoles().remove(adminRole);
+        // Clear all existing roles
+        user.getRoles().clear();
+        
+        // Add USER role only (user should have single role)
+        user.getRoles().add(userRole);
+        
         userRepository.save(user);
         
-        log.info("User {} demoted from admin successfully", userId);
+        log.info("User {} demoted from admin successfully. Final role: USER", userId);
     }
     
     /**
@@ -99,22 +128,18 @@ public class AdminUserService {
             throw new BadRequestException("البريد الإلكتروني مستخدم بالفعل - Email already exists");
         }
         
-        Role adminRole = roleRepository.findByName("ROLE_ADMIN")
-                .orElseThrow(() -> new ResourceNotFoundException("Role", "name", "ROLE_ADMIN"));
-        
-        Role userRole = roleRepository.findByName("ROLE_USER")
-                .orElseThrow(() -> new ResourceNotFoundException("Role", "name", "ROLE_USER"));
+        Role adminRole = getAdminRole();
         
         User admin = new User();
         admin.setEmail(email);
         admin.setPassword(passwordEncoder.encode(password));
         admin.setFullName(fullName);
         admin.setActive(true);
+        // Admin users should only have ADMIN role, not USER role
         admin.getRoles().add(adminRole);
-        admin.getRoles().add(userRole);
         
         User savedAdmin = userRepository.save(admin);
-        log.info("Admin user created successfully: {}", savedAdmin.getId());
+        log.info("Admin user created successfully with ADMIN role only: {}", savedAdmin.getId());
         
         return savedAdmin;
     }

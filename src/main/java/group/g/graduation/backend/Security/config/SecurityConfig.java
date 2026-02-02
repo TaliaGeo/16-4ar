@@ -20,6 +20,11 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.http.MediaType;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 
 @Configuration
@@ -73,15 +78,20 @@ public class SecurityConfig {
                     "/webjars/**",
                     "/oauth2/**",
                     "/login/oauth2/**",
-                    "/uploads/**"  // Allow public access to uploaded files
+                    "/uploads/**",  // Allow public access to uploaded files
+                    "/api/admin/users/create-admin"  // IMPORTANT: Must come BEFORE /api/admin/**
                 ).permitAll()
-                // Admin endpoints require ADMIN role
+                // Admin endpoints require ADMIN role (MUST come after specific permitAll)
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // Role management endpoints
                 .requestMatchers("/api/roles/**").hasAnyRole("ADMIN", "USER")
                 .requestMatchers("/api/permissions/**").hasRole("ADMIN")
                 // All other requests require authentication
                 .anyRequest().authenticated()
+            )
+            // Custom authentication entry point for API requests
+            .exceptionHandling(exceptions -> exceptions
+                .authenticationEntryPoint(customAuthenticationEntryPoint())
             )
             // OAuth2 Login Configuration
             .oauth2Login(oauth2 -> oauth2
@@ -134,5 +144,41 @@ public class SecurityConfig {
             new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
+    }
+
+    @Bean
+    public AuthenticationEntryPoint customAuthenticationEntryPoint() {
+        return (HttpServletRequest request, HttpServletResponse response, 
+                org.springframework.security.core.AuthenticationException authException) -> {
+            
+            String requestUri = request.getRequestURI();
+            String acceptHeader = request.getHeader("Accept");
+            
+            log.debug("🔒 Authentication failed for: {} - Accept: {}", requestUri, acceptHeader);
+            
+            // For API requests, return JSON error instead of HTML redirect
+            if (requestUri.startsWith("/api/") || 
+                (acceptHeader != null && acceptHeader.contains("application/json"))) {
+                
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                response.setCharacterEncoding("UTF-8");
+                
+                var errorResponse = new java.util.HashMap<String, Object>();
+                errorResponse.put("error", "Unauthorized");
+                errorResponse.put("message", "Authentication required");
+                errorResponse.put("timestamp", java.time.Instant.now().toString());
+                errorResponse.put("path", requestUri);
+                errorResponse.put("status", 401);
+                
+                ObjectMapper mapper = new ObjectMapper();
+                response.getWriter().write(mapper.writeValueAsString(errorResponse));
+                response.getWriter().flush();
+                
+            } else {
+                // For regular browser requests, redirect to login
+                response.sendRedirect("/login");
+            }
+        };
     }
 }

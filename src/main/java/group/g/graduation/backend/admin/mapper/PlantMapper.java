@@ -134,15 +134,18 @@ public class PlantMapper {
      * Convert Plant entity to PlantResponse DTO
      */
     public PlantResponse toResponse(Plant plant) {
-        List<PlantImageResponse> imageResponses = plant.getImages().stream()
+        // Defensive: handle null images list
+        List<PlantImage> images = plant.getImages() != null ? plant.getImages() : List.of();
+        
+        List<PlantImageResponse> imageResponses = images.stream()
                 .map(this::toImageResponse)
                 .collect(Collectors.toList());
         
-        String primaryImageUrl = plant.getImages().stream()
+        String primaryImageUrl = images.stream()
                 .filter(img -> Boolean.TRUE.equals(img.getIsPrimary()))
                 .findFirst()
                 .map(PlantImage::getImageUrl)
-                .orElse(plant.getImages().isEmpty() ? null : plant.getImages().get(0).getImageUrl());
+                .orElse(images.isEmpty() ? null : images.get(0).getImageUrl());
         
         return PlantResponse.builder()
                 .id(plant.getId())
@@ -198,11 +201,14 @@ public class PlantMapper {
      * Convert Plant entity to PlantSummaryResponse DTO (for lists)
      */
     public PlantSummaryResponse toSummaryResponse(Plant plant) {
-        String primaryImageUrl = plant.getImages().stream()
+        // Defensive: handle null images list
+        List<PlantImage> images = plant.getImages() != null ? plant.getImages() : List.of();
+        
+        String primaryImageUrl = images.stream()
                 .filter(img -> Boolean.TRUE.equals(img.getIsPrimary()))
                 .findFirst()
                 .map(PlantImage::getImageUrl)
-                .orElse(plant.getImages().isEmpty() ? null : plant.getImages().get(0).getImageUrl());
+                .orElse(images.isEmpty() ? null : images.get(0).getImageUrl());
         
         return PlantSummaryResponse.builder()
                 .id(plant.getId())
@@ -214,7 +220,7 @@ public class PlantMapper {
                 .difficultyLevel(plant.getDifficultyLevel())
                 .category(plant.getCategory())
                 .primaryImageUrl(primaryImageUrl)
-                .imagesCount(plant.getImages().size())
+                .imagesCount(images.size())
                 .build();
     }
     

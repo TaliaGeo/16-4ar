@@ -94,6 +94,9 @@ public class UserService {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
 
+        log.info("Updating user {}: fullName={}, phoneNumber={}, active={}, roleIds={}", 
+            id, userDTO.getFullName(), userDTO.getPhoneNumber(), userDTO.getActive(), userDTO.getRoleIds());
+
         if (userDTO.getFullName() != null) {
             user.setFullName(userDTO.getFullName());
         }
@@ -103,16 +106,24 @@ public class UserService {
         if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
             user.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         }
+        
+        // ⚠️ FIX: Update active status
+        if (userDTO.getActive() != null) {
+            user.setActive(userDTO.getActive());
+            log.info("Updated active status for user {}: {}", id, userDTO.getActive());
+        }
+        
         if (userDTO.getRoleIds() != null && !userDTO.getRoleIds().isEmpty()) {
             Set<Role> roles = userDTO.getRoleIds().stream()
                 .map(roleId -> roleRepository.findById(roleId)
                     .orElseThrow(() -> new ResourceNotFoundException("Role not found with id: " + roleId)))
                 .collect(Collectors.toSet());
             user.setRoles(roles);
+            log.info("Updated roles for user {}: {}", id, roles.stream().map(Role::getName).collect(Collectors.toSet()));
         }
 
         User updatedUser = userRepository.save(user);
-        log.info("Updated user: {}", updatedUser.getEmail());
+        log.info("Updated user: {}, active: {}", updatedUser.getEmail(), updatedUser.isActive());
         return convertToDTO(updatedUser);
     }
 

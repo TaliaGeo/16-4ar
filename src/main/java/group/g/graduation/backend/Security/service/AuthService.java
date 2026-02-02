@@ -56,6 +56,8 @@ public class AuthService {
         // Get user details
         UserDTO user = userService.getUserByEmail(loginRequest.getEmail());
         
+        log.info("User {} logging in with roles: {}", user.getEmail(), user.getRoleNames());
+        
         // Create session and get tokenId
         UserSession session = sessionService.createSession(user.getId(), jwtExpirationMs, request);
         String tokenId = session.getTokenId();
@@ -67,7 +69,11 @@ public class AuthService {
         // Join role names with comma for the response
         String roleNames = String.join(",", user.getRoleNames());
 
-        log.info("User {} successfully logged in from {}", user.getEmail(), session.getDeviceType());
+        log.info("User {} successfully logged in from {} with roles: {} and authorities: {}", 
+                user.getEmail(), session.getDeviceType(), roleNames,
+                authentication.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .toList());
 
         return new AuthResponse(jwt, tokenId, user.getId(), user.getEmail(), roleNames, refreshToken.getToken());
     }

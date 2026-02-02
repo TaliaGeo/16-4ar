@@ -3,6 +3,7 @@ package group.g.graduation.backend.Security.service;
 import group.g.graduation.backend.Security.dto.UserDTO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -53,9 +54,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                         .collect(Collectors.toList()));
             }
             
-            // Log successful loading
-            log.debug("Loading user: {}, active: {}, roles: {}", 
-                     email, userDTO.getActive(), userDTO.getRoleNames());
+            // Log successful loading with authorities
+            log.info("User loaded: {}, active: {}, roles: {}, authorities: {}", 
+                     email, userDTO.getActive(), userDTO.getRoleNames(),
+                     authorities.stream().map(GrantedAuthority::getAuthority).toList());
             
             // Return UserDetails with the actual password for authentication
             return new User(
