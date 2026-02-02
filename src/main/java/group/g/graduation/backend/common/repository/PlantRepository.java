@@ -18,6 +18,10 @@ public interface PlantRepository extends JpaRepository<Plant, Long> {
     List<Plant> findByNameArContainingIgnoreCase(String nameAr);
     List<Plant> findByNameEnContainingIgnoreCase(String nameEn);
     
+    // التحقق من وجود نبتة بنفس الاسم (للـ duplicate check)
+    boolean existsByNameAr(String nameAr);
+    boolean existsByNameScientific(String nameScientific);
+    
     // البحث بالتصنيف
     List<Plant> findByCategory(PlantCategory category);
     
