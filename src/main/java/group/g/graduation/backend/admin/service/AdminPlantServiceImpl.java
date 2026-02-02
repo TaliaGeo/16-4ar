@@ -4,6 +4,7 @@ import group.g.graduation.backend.admin.dto.*;
 import group.g.graduation.backend.admin.mapper.PlantMapper;
 import group.g.graduation.backend.common.enums.PlantCategory;
 import group.g.graduation.backend.common.exception.BadRequestException;
+import group.g.graduation.backend.common.exception.DuplicateResourceException;
 import group.g.graduation.backend.common.exception.ResourceNotFoundException;
 import group.g.graduation.backend.common.model.Plant;
 import group.g.graduation.backend.common.model.PlantImage;
@@ -37,10 +38,28 @@ public class AdminPlantServiceImpl implements AdminPlantService {
     public PlantResponse createPlant(PlantCreateRequest request) {
         log.info("Creating new plant: {}", request.getNameAr());
         
+        // ===== 1) التحقق من عدم وجود تكرار =====
+        if (request.getNameAr() != null && plantRepository.existsByNameAr(request.getNameAr())) {
+            log.warn("Plant with nameAr '{}' already exists", request.getNameAr());
+            throw new DuplicateResourceException("Plant", "nameAr", request.getNameAr());
+        }
+        
+        if (request.getNameScientific() != null && 
+            !request.getNameScientific().trim().isEmpty() && 
+            plantRepository.existsByNameScientific(request.getNameScientific())) {
+            log.warn("Plant with nameScientific '{}' already exists", request.getNameScientific());
+            throw new DuplicateResourceException("Plant", "nameScientific", request.getNameScientific());
+        }
+        
+        // ===== 2) إنشاء Entity جديدة =====
         Plant plant = plantMapper.toEntity(request);
+        
+        // ===== 3) حفظ في قاعدة البيانات =====
         Plant savedPlant = plantRepository.save(plant);
         
         log.info("Plant created successfully with ID: {}", savedPlant.getId());
+        
+        // ===== 4) إرجاع Response =====
         return plantMapper.toResponse(savedPlant);
     }
     
@@ -108,10 +127,10 @@ public class AdminPlantServiceImpl implements AdminPlantService {
                 .toList();
         
         // تحويل لـ Page يدوياً
-        int start = (int) pageable.getOffset();
+        int start = Math.min((int) pageable.getOffset(), uniquePlants.size());
         int end = Math.min((start + pageable.getPageSize()), uniquePlants.size());
         
-        List<Plant> pageContent = uniquePlants.subList(start, end);
+        List<Plant> pageContent = start < uniquePlants.size() ? uniquePlants.subList(start, end) : List.of();
         Page<Plant> page = new org.springframework.data.domain.PageImpl<>(
                 pageContent, pageable, uniquePlants.size());
         
@@ -125,10 +144,10 @@ public class AdminPlantServiceImpl implements AdminPlantService {
         
         List<Plant> plants = plantRepository.findByCategory(category);
         
-        int start = (int) pageable.getOffset();
+        int start = Math.min((int) pageable.getOffset(), plants.size());
         int end = Math.min((start + pageable.getPageSize()), plants.size());
         
-        List<Plant> pageContent = plants.subList(start, end);
+        List<Plant> pageContent = start < plants.size() ? plants.subList(start, end) : List.of();
         Page<Plant> page = new org.springframework.data.domain.PageImpl<>(
                 pageContent, pageable, plants.size());
         
@@ -142,6 +161,11 @@ public class AdminPlantServiceImpl implements AdminPlantService {
         log.info("Adding image to plant ID: {}", plantId);
         
         Plant plant = findPlantById(plantId);
+        
+        // Defensive: ensure images list is not null
+        if (plant.getImages() == null) {
+            plant.setImages(new java.util.ArrayList<>());
+        }
         
         // إذا كانت هذه الصورة الرئيسية، نزيل الـ primary من الصور الأخرى
         if (Boolean.TRUE.equals(request.getIsPrimary())) {
@@ -171,6 +195,11 @@ public class AdminPlantServiceImpl implements AdminPlantService {
         
         Plant plant = findPlantById(plantId);
         
+        // Defensive: ensure images list is not null
+        if (plant.getImages() == null || plant.getImages().isEmpty()) {
+            throw new ResourceNotFoundException("Image", "id", imageId);
+        }
+        
         PlantImage image = plant.getImages().stream()
                 .filter(img -> img.getId().equals(imageId))
                 .findFirst()
@@ -187,6 +216,11 @@ public class AdminPlantServiceImpl implements AdminPlantService {
         log.info("Setting primary image {} for plant {}", imageId, plantId);
         
         Plant plant = findPlantById(plantId);
+        
+        // Defensive: ensure images list is not null
+        if (plant.getImages() == null || plant.getImages().isEmpty()) {
+            throw new ResourceNotFoundException("Image", "id", imageId);
+        }
         
         PlantImage targetImage = null;
         
@@ -215,6 +249,11 @@ public class AdminPlantServiceImpl implements AdminPlantService {
         
         Plant plant = findPlantById(plantId);
         List<Long> newOrder = request.getImageIds();
+        
+        // Defensive: ensure images list is not null
+        if (plant.getImages() == null) {
+            plant.setImages(new java.util.ArrayList<>());
+        }
         
         // التحقق من أن كل الصور موجودة
         if (newOrder.size() != plant.getImages().size()) {
