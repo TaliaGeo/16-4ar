@@ -7,6 +7,7 @@ import group.g.graduation.backend.admin.dto.QuestionOptionResponse;
 import group.g.graduation.backend.admin.service.AdminPlantingQuestionService;
 import group.g.graduation.backend.admin.service.AdminPlantingQuestionService.PlantingQuestionStats;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
 @Tag(name = "Admin - Planting Questions", description = "APIs for managing planting questions and options for plant recommendation")
+@SecurityRequirement(name = "bearerAuth")
 public class AdminPlantingQuestionController {
     
     private final AdminPlantingQuestionService questionService;

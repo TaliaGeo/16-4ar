@@ -2,11 +2,13 @@ package group.g.graduation.backend.Security.exception;
 
 import group.g.graduation.backend.common.exception.BadRequestException;
 import group.g.graduation.backend.common.exception.DuplicateResourceException;
+import group.g.graduation.backend.common.ratelimit.RateLimitExceededException;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.SignatureException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -34,6 +36,32 @@ import java.util.Map;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    // ==================== 429 TOO MANY REQUESTS ====================
+    
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleRateLimitExceededException(RateLimitExceededException ex) {
+        log.warn("Rate limit exceeded: {}", ex.getMessage());
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", HttpStatus.TOO_MANY_REQUESTS.value());
+        response.put("error", "Too Many Requests");
+        response.put("message", ex.getMessage());
+        response.put("messageAr", "تجاوزت الحد الأقصى من الطلبات");
+        response.put("retryAfterSeconds", ex.getRetryAfterSeconds());
+        response.put("warningCount", ex.getWarningCount());
+        response.put("blocked", ex.isBlocked());
+        response.put("timestamp", LocalDateTime.now());
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Retry-After", String.valueOf(ex.getRetryAfterSeconds()));
+        headers.add("X-RateLimit-Warning-Count", String.valueOf(ex.getWarningCount()));
+        
+        return ResponseEntity
+                .status(HttpStatus.TOO_MANY_REQUESTS)
+                .headers(headers)
+                .body(response);
+    }
 
     // ==================== 401 UNAUTHORIZED ====================
     

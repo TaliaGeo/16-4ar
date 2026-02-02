@@ -6,6 +6,7 @@ import group.g.graduation.backend.Security.oauth2.CustomOAuth2UserService;
 import group.g.graduation.backend.Security.oauth2.OAuth2AuthenticationFailureHandler;
 import group.g.graduation.backend.Security.oauth2.OAuth2AuthenticationSuccessHandler;
 import group.g.graduation.backend.Security.service.UserDetailsServiceImpl;
+import group.g.graduation.backend.common.ratelimit.RateLimitFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,6 +34,7 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
+    private final RateLimitFilter rateLimitFilter;
 
     public SecurityConfig(
         @Lazy JwtTokenProvider tokenProvider,
@@ -40,7 +42,8 @@ public class SecurityConfig {
         PasswordEncoder passwordEncoder,
         @Lazy CustomOAuth2UserService customOAuth2UserService,
         @Lazy OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler,
-        @Lazy OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler
+        @Lazy OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler,
+        RateLimitFilter rateLimitFilter
     ) {
         this.tokenProvider = tokenProvider;
         this.userDetailsService = userDetailsService;
@@ -48,6 +51,7 @@ public class SecurityConfig {
         this.customOAuth2UserService = customOAuth2UserService;
         this.oAuth2AuthenticationSuccessHandler = oAuth2AuthenticationSuccessHandler;
         this.oAuth2AuthenticationFailureHandler = oAuth2AuthenticationFailureHandler;
+        this.rateLimitFilter = rateLimitFilter;
     }
 
     @Bean
@@ -68,7 +72,8 @@ public class SecurityConfig {
                     "/swagger-resources/**",
                     "/webjars/**",
                     "/oauth2/**",
-                    "/login/oauth2/**"
+                    "/login/oauth2/**",
+                    "/uploads/**"  // Allow public access to uploaded files
                 ).permitAll()
                 // Admin endpoints require ADMIN role
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
@@ -92,6 +97,8 @@ public class SecurityConfig {
                 .successHandler(oAuth2AuthenticationSuccessHandler)
                 .failureHandler(oAuth2AuthenticationFailureHandler)
             )
+            // Rate Limit Filter (before authentication)
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             // JWT Authentication Filter
             .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
         

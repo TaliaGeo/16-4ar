@@ -3,6 +3,7 @@ package group.g.graduation.backend.admin.controller;
 import group.g.graduation.backend.admin.dto.*;
 import group.g.graduation.backend.admin.service.AdminNotificationService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
 @Tag(name = "Admin - Notifications", description = "إدارة الإشعارات - APIs للأدمن")
+@SecurityRequirement(name = "bearerAuth")
 public class AdminNotificationController {
     
     private final AdminNotificationService notificationService;

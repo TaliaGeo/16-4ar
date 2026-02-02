@@ -34,4 +34,10 @@ public interface PlantRepository extends JpaRepository<Plant, Long> {
     // جلب كل النباتات مع الصورة الرئيسية
     @Query("SELECT DISTINCT p FROM Plant p LEFT JOIN FETCH p.images i WHERE i.isPrimary = true OR i.isPrimary IS NULL")
     List<Plant> findAllWithPrimaryImage();
+    
+    // عدد النباتات حسب التصنيف
+    long countByCategory(PlantCategory category);
+    
+    // عدد النباتات حسب مستوى الصعوبة
+    long countByDifficultyLevel(DifficultyLevel difficultyLevel);
 }

@@ -154,9 +154,47 @@ public class AdminMonthPlantService {
      */
     @Transactional(readOnly = true)
     public MonthPlantResponse getMonthPlantById(Long id) {
-        MonthPlant monthPlant = monthPlantRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("MonthPlant not found with ID: " + id));
-        return mapper.toResponse(monthPlant);
+        try {
+            log.info("Fetching month-plant with ID: {}", id);
+            
+            // Check if month-plant exists first
+            if (!monthPlantRepository.existsById(id)) {
+                log.warn("Month-plant with ID {} does not exist", id);
+                throw new EntityNotFoundException("MonthPlant not found with ID: " + id);
+            }
+            
+            // Use JOIN FETCH query to avoid LazyInitializationException
+            MonthPlant monthPlant = monthPlantRepository.findByIdWithDetails(id)
+                    .orElse(null);
+            
+            if (monthPlant != null) {
+                log.info("Found month-plant with JOIN FETCH - ID: {}, Month: {}, Plant: {}", 
+                    monthPlant.getId(),
+                    monthPlant.getMonth() != null ? monthPlant.getMonth().getNameEn() : "NULL",
+                    monthPlant.getPlant() != null ? monthPlant.getPlant().getNameEn() : "NULL");
+                
+                MonthPlantResponse response = mapper.toResponse(monthPlant);
+                log.info("Successfully mapped month-plant to response");
+                return response;
+            }
+            
+            // Fallback to normal find if JOIN FETCH fails
+            log.warn("JOIN FETCH failed for month-plant ID: {}, trying regular findById", id);
+            monthPlant = monthPlantRepository.findById(id)
+                    .orElseThrow(() -> new EntityNotFoundException("MonthPlant not found with ID: " + id));
+            
+            log.info("Found month-plant with regular query - ID: {}", monthPlant.getId());
+            MonthPlantResponse response = mapper.toResponse(monthPlant);
+            log.info("Successfully mapped month-plant to response using fallback method");
+            return response;
+            
+        } catch (EntityNotFoundException e) {
+            log.error("MonthPlant not found with ID: {} - {}", id, e.getMessage());
+            throw e;
+        } catch (Exception e) {
+            log.error("Unexpected error fetching month-plant with ID: {} - Error: {}", id, e.getMessage(), e);
+            throw new RuntimeException("Failed to get month-plant with ID " + id + ": " + e.getMessage(), e);
+        }
     }
     
     /**
@@ -199,46 +237,72 @@ public class AdminMonthPlantService {
     /**
      * Update month-plant relationship
      */
-    public MonthPlantResponse updateMonthPlant(Long id, MonthPlantRequest request) {
+    public MonthPlantResponse updateMonthPlant(Long id, MonthPlantUpdateRequest request) {
         log.info("Updating month-plant with ID: {}", id);
         
-        MonthPlant monthPlant = monthPlantRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("MonthPlant not found with ID: " + id));
-        
-        if (request.getPlantingNoteAr() != null) {
-            monthPlant.setPlantingNoteAr(request.getPlantingNoteAr());
+        try {
+            MonthPlant monthPlant = monthPlantRepository.findById(id)
+                    .orElseThrow(() -> new EntityNotFoundException("MonthPlant not found with ID: " + id));
+            
+            if (request.getPlantingNoteAr() != null) {
+                monthPlant.setPlantingNoteAr(request.getPlantingNoteAr());
+            }
+            if (request.getPlantingNoteEn() != null) {
+                monthPlant.setPlantingNoteEn(request.getPlantingNoteEn());
+            }
+            
+            MonthPlant saved = monthPlantRepository.save(monthPlant);
+            log.info("Updated month-plant with ID: {}", saved.getId());
+            
+            return mapper.toResponse(saved);
+        } catch (EntityNotFoundException e) {
+            log.error("MonthPlant not found with ID: {}", id);
+            throw e;
+        } catch (Exception e) {
+            log.error("Error updating month-plant with ID: {}", id, e);
+            throw new RuntimeException("Failed to update month-plant: " + e.getMessage(), e);
         }
-        if (request.getPlantingNoteEn() != null) {
-            monthPlant.setPlantingNoteEn(request.getPlantingNoteEn());
-        }
-        
-        MonthPlant saved = monthPlantRepository.save(monthPlant);
-        log.info("Updated month-plant with ID: {}", saved.getId());
-        
-        return mapper.toResponse(saved);
     }
     
     /**
      * Delete month-plant relationship
      */
     public void deleteMonthPlant(Long id) {
-        if (!monthPlantRepository.existsById(id)) {
-            throw new EntityNotFoundException("MonthPlant not found with ID: " + id);
+        try {
+            log.info("Deleting month-plant with ID: {}", id);
+            if (!monthPlantRepository.existsById(id)) {
+                throw new EntityNotFoundException("MonthPlant not found with ID: " + id);
+            }
+            monthPlantRepository.deleteById(id);
+            log.info("Deleted month-plant with ID: {}", id);
+        } catch (EntityNotFoundException e) {
+            log.error("MonthPlant not found for deletion with ID: {}", id);
+            throw e;
+        } catch (Exception e) {
+            log.error("Error deleting month-plant with ID: {}", id, e);
+            throw new RuntimeException("Failed to delete month-plant: " + e.getMessage(), e);
         }
-        monthPlantRepository.deleteById(id);
-        log.info("Deleted month-plant with ID: {}", id);
     }
     
     /**
      * Remove plant from month
      */
     public void removePlantFromMonth(Long monthId, Long plantId) {
-        MonthPlant monthPlant = monthPlantRepository.findByMonthIdAndPlantId(monthId, plantId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "MonthPlant not found for monthId=" + monthId + " and plantId=" + plantId));
-        
-        monthPlantRepository.delete(monthPlant);
-        log.info("Removed plant {} from month {}", plantId, monthId);
+        try {
+            log.info("Removing plant {} from month {}", plantId, monthId);
+            MonthPlant monthPlant = monthPlantRepository.findByMonthIdAndPlantId(monthId, plantId)
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "MonthPlant not found for monthId=" + monthId + " and plantId=" + plantId));
+            
+            monthPlantRepository.delete(monthPlant);
+            log.info("Removed plant {} from month {}", plantId, monthId);
+        } catch (EntityNotFoundException e) {
+            log.error("MonthPlant not found for monthId={} and plantId={}", monthId, plantId);
+            throw e;
+        } catch (Exception e) {
+            log.error("Error removing plant {} from month {}", plantId, monthId, e);
+            throw new RuntimeException("Failed to remove plant from month: " + e.getMessage(), e);
+        }
     }
     
     /**

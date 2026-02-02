@@ -3,9 +3,12 @@ package group.g.graduation.backend.admin.controller;
 import group.g.graduation.backend.admin.dto.*;
 import group.g.graduation.backend.admin.service.AdminMonthPlantService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -21,8 +24,10 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/admin/month-plants")
 @RequiredArgsConstructor
+@Slf4j
 @PreAuthorize("hasRole('ADMIN')")
-@Tag(name = "Admin - Month Plants", description = "إدارة ربط النباتات بالأشهر - APIs للأدمن")
+@Tag(name = "Admin MonthPlant Management", description = "إدارة علاقة الأشهر بالنباتات")
+@SecurityRequirement(name = "bearerAuth")
 public class AdminMonthPlantController {
     
     private final AdminMonthPlantService monthPlantService;
@@ -66,8 +71,32 @@ public class AdminMonthPlantController {
     
     @GetMapping("/{id}")
     @Operation(summary = "جلب علاقة", description = "جلب علاقة شهر-نبتة بمعرفها")
-    public ResponseEntity<MonthPlantResponse> getMonthPlantById(@PathVariable Long id) {
-        return ResponseEntity.ok(monthPlantService.getMonthPlantById(id));
+    public ResponseEntity<?> getMonthPlantById(@PathVariable Long id) {
+        try {
+            log.info("Getting month-plant with id: {}", id);
+            MonthPlantResponse response = monthPlantService.getMonthPlantById(id);
+            log.info("Successfully retrieved month-plant with id: {}", id);
+            return ResponseEntity.ok(response);
+        } catch (EntityNotFoundException e) {
+            log.warn("Month-plant not found with id: {}: {}", id, e.getMessage());
+            Map<String, Object> error = Map.of(
+                "status", 404,
+                "error", "Not Found",
+                "message", e.getMessage(),
+                "timestamp", java.time.LocalDateTime.now()
+            );
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            log.error("Error getting month-plant with id: {}", id, e);
+            Map<String, Object> error = Map.of(
+                "status", 500,
+                "error", "Internal Server Error",
+                "message", "Error retrieving month plant: " + e.getMessage(),
+                "timestamp", java.time.LocalDateTime.now(),
+                "details", e.getClass().getSimpleName()
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     @GetMapping("/month/{monthId}")
@@ -104,10 +133,34 @@ public class AdminMonthPlantController {
     
     @PutMapping("/{id}")
     @Operation(summary = "تعديل علاقة", description = "تعديل ملاحظات الزراعة لعلاقة موجودة")
-    public ResponseEntity<MonthPlantResponse> updateMonthPlant(
+    public ResponseEntity<?> updateMonthPlant(
             @PathVariable Long id,
-            @Valid @RequestBody MonthPlantRequest request) {
-        return ResponseEntity.ok(monthPlantService.updateMonthPlant(id, request));
+            @Valid @RequestBody MonthPlantUpdateRequest request) {
+        try {
+            log.info("Updating month-plant with id: {} with data: {}", id, request);
+            MonthPlantResponse response = monthPlantService.updateMonthPlant(id, request);
+            log.info("Successfully updated month-plant with id: {}", id);
+            return ResponseEntity.ok(response);
+        } catch (EntityNotFoundException e) {
+            log.warn("Month-plant not found for update with id: {}: {}", id, e.getMessage());
+            Map<String, Object> error = Map.of(
+                "status", 404,
+                "error", "Not Found", 
+                "message", e.getMessage(),
+                "timestamp", java.time.LocalDateTime.now()
+            );
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            log.error("Error updating month-plant with id: {}", id, e);
+            Map<String, Object> error = Map.of(
+                "status", 500,
+                "error", "Internal Server Error",
+                "message", "Error updating month plant: " + e.getMessage(),
+                "timestamp", java.time.LocalDateTime.now(),
+                "details", e.getClass().getSimpleName()
+            );
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
     }
     
     // ===================== Delete Operations =====================

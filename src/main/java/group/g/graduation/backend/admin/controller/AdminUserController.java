@@ -7,6 +7,7 @@ import group.g.graduation.backend.Security.model.User;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Admin User Management", description = "APIs لإدارة صلاحيات المسؤولين - Admin Role Management APIs")
+@SecurityRequirement(name = "bearerAuth")
 public class AdminUserController {
     
     private final AdminUserService adminUserService;

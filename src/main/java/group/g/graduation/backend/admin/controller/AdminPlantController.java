@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
 @Tag(name = "Admin - Plants", description = "Plant management APIs for administrators")
+@SecurityRequirement(name = "bearerAuth")
 public class AdminPlantController {
     
     private final AdminPlantService plantService;
@@ -134,61 +136,6 @@ public class AdminPlantController {
         Pageable pageable = PageRequest.of(page, size);
         PlantListResponse response = plantService.getPlantsByCategory(category, pageable);
         return ResponseEntity.ok(response);
-    }
-    
-    // ===== Image Operations =====
-    
-    @PostMapping("/{plantId}/images")
-    @Operation(summary = "Add image to plant", description = "إضافة صورة للنبتة")
-    @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Image added successfully"),
-        @ApiResponse(responseCode = "404", description = "Plant not found")
-    })
-    public ResponseEntity<PlantImageResponse> addImage(
-            @Parameter(description = "Plant ID") @PathVariable Long plantId,
-            @Valid @RequestBody PlantImageRequest request) {
-        PlantImageResponse response = plantService.addImage(plantId, request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-    
-    @DeleteMapping("/{plantId}/images/{imageId}")
-    @Operation(summary = "Delete image from plant", description = "حذف صورة من النبتة")
-    @ApiResponses({
-        @ApiResponse(responseCode = "204", description = "Image deleted successfully"),
-        @ApiResponse(responseCode = "404", description = "Plant or image not found")
-    })
-    public ResponseEntity<Void> deleteImage(
-            @Parameter(description = "Plant ID") @PathVariable Long plantId,
-            @Parameter(description = "Image ID") @PathVariable Long imageId) {
-        plantService.deleteImage(plantId, imageId);
-        return ResponseEntity.noContent().build();
-    }
-    
-    @PutMapping("/{plantId}/images/{imageId}/primary")
-    @Operation(summary = "Set primary image", description = "تعيين الصورة الرئيسية")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Primary image set successfully"),
-        @ApiResponse(responseCode = "404", description = "Plant or image not found")
-    })
-    public ResponseEntity<PlantImageResponse> setPrimaryImage(
-            @Parameter(description = "Plant ID") @PathVariable Long plantId,
-            @Parameter(description = "Image ID") @PathVariable Long imageId) {
-        PlantImageResponse response = plantService.setPrimaryImage(plantId, imageId);
-        return ResponseEntity.ok(response);
-    }
-    
-    @PutMapping("/{plantId}/images/reorder")
-    @Operation(summary = "Reorder images", description = "إعادة ترتيب صور النبتة")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Images reordered successfully"),
-        @ApiResponse(responseCode = "400", description = "Invalid image IDs"),
-        @ApiResponse(responseCode = "404", description = "Plant not found")
-    })
-    public ResponseEntity<Void> reorderImages(
-            @Parameter(description = "Plant ID") @PathVariable Long plantId,
-            @Valid @RequestBody ImageReorderRequest request) {
-        plantService.reorderImages(plantId, request);
-        return ResponseEntity.ok().build();
     }
     
     // ===== Video Operations =====

@@ -4,6 +4,7 @@ import group.g.graduation.backend.admin.dto.*;
 import group.g.graduation.backend.admin.service.AdminPlantSuitabilityService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
 @Tag(name = "Admin - Plant Suitability", description = "APIs for managing plant suitability and recommendations")
+@SecurityRequirement(name = "bearerAuth")
 public class AdminPlantSuitabilityController {
     
     private final AdminPlantSuitabilityService suitabilityService;

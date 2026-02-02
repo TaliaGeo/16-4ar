@@ -27,8 +27,12 @@ public interface MonthPlantRepository extends JpaRepository<MonthPlant, Long> {
     // التحقق من وجود علاقة
     boolean existsByMonthIdAndPlantId(Long monthId, Long plantId);
     
-    // جلب علاقة معينة
+    // جلب علاقة معينة بحسب معرف الشهر والنبتة
     Optional<MonthPlant> findByMonthIdAndPlantId(Long monthId, Long plantId);
+    
+    // جلب علاقة معينة بتفاصيل الشهر والنبتة
+    @Query("SELECT mp FROM MonthPlant mp JOIN FETCH mp.month JOIN FETCH mp.plant WHERE mp.id = :id")
+    Optional<MonthPlant> findByIdWithDetails(@Param("id") Long id);
     
     // جلب النباتات لشهر مع تفاصيل النبات
     @Query("SELECT mp FROM MonthPlant mp JOIN FETCH mp.plant WHERE mp.month.id = :monthId")

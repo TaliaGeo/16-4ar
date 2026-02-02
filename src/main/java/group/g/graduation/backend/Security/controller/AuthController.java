@@ -1,5 +1,6 @@
 package group.g.graduation.backend.Security.controller;
 
+import group.g.graduation.backend.common.ratelimit.RateLimit;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -31,11 +32,13 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/login")
+    @RateLimit(requests = 5, duration = 60, message = "Too many login attempts. Please try again later")
     @Operation(summary = "User login", description = "Authenticate user and return JWT token")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Login successful",
                     content = @Content(schema = @Schema(implementation = AuthResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Invalid credentials")
+            @ApiResponse(responseCode = "401", description = "Invalid credentials"),
+            @ApiResponse(responseCode = "429", description = "Too many requests")
     })
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest loginRequest, HttpServletRequest request) {
         log.info("Login request received for: {}", loginRequest.getEmail());
@@ -43,11 +46,13 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    @RateLimit(requests = 3, duration = 60, message = "Too many registration attempts. Please try again later")
     @Operation(summary = "User registration", description = "Register a new user")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Registration successful",
                     content = @Content(schema = @Schema(implementation = AuthResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid input")
+            @ApiResponse(responseCode = "400", description = "Invalid input"),
+            @ApiResponse(responseCode = "429", description = "Too many requests")
     })
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest registerRequest, HttpServletRequest request) {
         log.info("Registration request received for: {}", registerRequest.getEmail());
@@ -55,11 +60,13 @@ public class AuthController {
     }
     
     @PostMapping("/refresh-token")
+    @RateLimit(requests = 10, duration = 60, message = "Too many token refresh attempts")
     @Operation(summary = "Refresh JWT token", description = "Refresh the access token using the refresh token")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Token refreshed successfully",
                     content = @Content(schema = @Schema(implementation = TokenRefreshResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Invalid refresh token")
+            @ApiResponse(responseCode = "400", description = "Invalid refresh token"),
+            @ApiResponse(responseCode = "429", description = "Too many requests")
     })
     public ResponseEntity<TokenRefreshResponse> refreshToken(@Valid @RequestBody TokenRefreshRequest request,
                                                             HttpServletRequest httpRequest) {
