@@ -6,7 +6,9 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.SignatureException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -24,16 +26,29 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 @RestControllerAdvice
 @Slf4j
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final Environment environment;
+    
+    /**
+     * Check if we're in dev/local profile to show detailed errors
+     */
+    private boolean isDevProfile() {
+        return Arrays.asList(environment.getActiveProfiles()).contains("dev") ||
+               Arrays.asList(environment.getActiveProfiles()).contains("local");
+    }
 
     // ==================== 401 UNAUTHORIZED ====================
     
@@ -215,18 +230,28 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(errorResponse);
     }
 
+  // ...existing code...
     @ExceptionHandler(HttpMessageNotReadableException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<ErrorResponse> handleHttpMessageNotReadableException(HttpMessageNotReadableException ex) {
         log.error("Message not readable: {}", ex.getMessage());
+        
+        // أظهر السبب الحقيقي بدل رسالة عامة
+        String message = "Invalid request body";
+        Throwable cause = ex.getCause();
+        if (cause != null) {
+            message = cause.getMessage();
+            log.error("Root cause: {}", message);
+        }
+        
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),
-                "Invalid request body. Please check your JSON format",
+                message,
                 LocalDateTime.now()
         );
         return ResponseEntity.badRequest().body(errorResponse);
     }
-
+// ...existing code...
     @ExceptionHandler(MissingServletRequestParameterException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ResponseEntity<ErrorResponse> handleMissingServletRequestParameterException(
@@ -299,15 +324,29 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
     
+    // استبدل handleDataIntegrityViolationException بهذا:
+
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(
             org.springframework.dao.DataIntegrityViolationException ex) {
         log.error("Data integrity violation: {}", ex.getMessage());
-        String message = "Data conflict occurred";
-        if (ex.getMessage() != null && ex.getMessage().contains("duplicate")) {
-            message = "A record with this information already exists";
+        
+        String message = "النبتة موجودة مسبقاً";
+        String detailedMessage = ex.getMostSpecificCause().getMessage();
+        
+        // تحليل الرسالة لمعرفة الحقل المكرر
+        if (detailedMessage != null) {
+            if (detailedMessage.contains("name_ar") || detailedMessage.contains("nameAr")) {
+                message = "نبتة بنفس الاسم العربي موجودة مسبقاً";
+            } else if (detailedMessage.contains("name_scientific") || detailedMessage.contains("nameScientific")) {
+                message = "نبتة بنفس الاسم العلمي موجودة مسبقاً";
+            } else if (detailedMessage.contains("duplicate")) {
+                message = "النبتة موجودة مسبقاً، الرجاء التحقق من البيانات";
+            }
+            log.error("Duplicate field details: {}", detailedMessage);
         }
+        
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.CONFLICT.value(),
                 message,
@@ -315,18 +354,47 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
-
     // ==================== 500 INTERNAL SERVER ERROR ====================
     
-    @ExceptionHandler(Exception.class)
+    @ExceptionHandler(NullPointerException.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ResponseEntity<ErrorResponse> handleAllUncaughtException(Exception ex) {
-        log.error("Unexpected error occurred: ", ex);
+    public ResponseEntity<ErrorResponse> handleNullPointerException(NullPointerException ex, WebRequest request) {
+        log.error("NullPointerException occurred at {}: ", request.getDescription(false), ex);
+        
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "An unexpected error occurred. Please try again later",
-                LocalDateTime.now()
+                LocalDateTime.now(),
+                "NULL_POINTER_ERROR"
         );
+        
+        // في dev profile نعرض التفاصيل
+        if (isDevProfile()) {
+            errorResponse.setDetails(ex.getMessage());
+            errorResponse.setPath(request.getDescription(false).replace("uri=", ""));
+        }
+        
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+    
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ResponseEntity<ErrorResponse> handleAllUncaughtException(Exception ex, WebRequest request) {
+        log.error("Unexpected error occurred at {}: ", request.getDescription(false), ex);
+        
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "An unexpected error occurred. Please try again later",
+                LocalDateTime.now(),
+                "INTERNAL_SERVER_ERROR"
+        );
+        
+        // في dev profile نعرض التفاصيل
+        if (isDevProfile()) {
+            errorResponse.setDetails(ex.getClass().getSimpleName() + ": " + ex.getMessage());
+            errorResponse.setPath(request.getDescription(false).replace("uri=", ""));
+        }
+        
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
     }
 }
