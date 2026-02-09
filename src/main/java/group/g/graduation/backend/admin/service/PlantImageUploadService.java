@@ -1,5 +1,6 @@
 package group.g.graduation.backend.admin.service;
 
+import group.g.graduation.backend.admin.dto.PlantImageRequest;
 import group.g.graduation.backend.common.exception.BadRequestException;
 import group.g.graduation.backend.common.exception.ResourceNotFoundException;
 import group.g.graduation.backend.common.model.Plant;
@@ -36,16 +37,23 @@ public class PlantImageUploadService {
     private String uploadDir;
     
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of(
-            "jpg", "jpeg", "png", "gif", "webp"
+            "jpg", "jpeg", "png", "webp"
     );
     
-    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     
     /**
      * رفع صورة لنبتة
      */
     @Transactional
-    public PlantImage uploadPlantImage(Long plantId, MultipartFile file, Boolean isPrimary) {
+    public PlantImage uploadPlantImage(
+            Long plantId, 
+            MultipartFile file, 
+            Boolean isPrimary,
+            String altTextAr,
+            String altTextEn,
+            Integer displayOrder
+    ) {
         Plant plant = plantRepository.findById(plantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Plant", "id", plantId));
         
@@ -65,13 +73,13 @@ public class PlantImageUploadService {
         
         // الحصول على أعلى ترتيب حالي
         Integer maxOrder = plantImageRepository.findMaxDisplayOrderByPlantId(plantId);
-        int nextOrder = (maxOrder != null ? maxOrder : 0) + 1;
+        int nextOrder = displayOrder != null ? displayOrder : ((maxOrder != null ? maxOrder : 0) + 1);
         
         PlantImage plantImage = new PlantImage();
         plantImage.setPlant(plant);
         plantImage.setImageUrl("/uploads/plants/" + plantId + "/" + fileName);
-        plantImage.setAltTextAr(plant.getNameAr());
-        plantImage.setAltTextEn(plant.getNameEn());
+        plantImage.setAltTextAr(altTextAr != null ? altTextAr : plant.getNameAr());
+        plantImage.setAltTextEn(altTextEn != null ? altTextEn : plant.getNameEn());
         plantImage.setIsPrimary(Boolean.TRUE.equals(isPrimary));
         plantImage.setDisplayOrder(nextOrder);
         
@@ -94,10 +102,66 @@ public class PlantImageUploadService {
         for (int i = 0; i < files.size(); i++) {
             MultipartFile file = files.get(i);
             boolean isPrimary = primaryImageIndex != null && primaryImageIndex == i;
-            PlantImage image = uploadPlantImage(plantId, file, isPrimary);
+            PlantImage image = uploadPlantImage(plantId, file, isPrimary, null, null, i + 1);
             uploadedImages.add(image);
         }
         
+        return uploadedImages;
+    }
+    
+    /**
+     * إضافة صورة لنبتة بـ URL (JSON)
+     */
+    @Transactional
+    public PlantImage addPlantImageByUrl(Long plantId, PlantImageRequest request) {
+        Plant plant = plantRepository.findById(plantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Plant", "id", plantId));
+        
+        // إذا كانت الصورة رئيسية، نلغي الرئيسية السابقة
+        if (Boolean.TRUE.equals(request.getIsPrimary())) {
+            plantImageRepository.findByPlantIdAndIsPrimaryTrue(plantId)
+                    .ifPresent(img -> {
+                        img.setIsPrimary(false);
+                        plantImageRepository.save(img);
+                    });
+        }
+        
+        // الحصول على أعلى ترتيب حالي
+        Integer maxOrder = plantImageRepository.findMaxDisplayOrderByPlantId(plantId);
+        int nextOrder = request.getDisplayOrder() != null 
+                ? request.getDisplayOrder() 
+                : ((maxOrder != null ? maxOrder : 0) + 1);
+        
+        PlantImage plantImage = new PlantImage();
+        plantImage.setPlant(plant);
+        plantImage.setImageUrl(request.getImageUrl());
+        plantImage.setAltTextAr(request.getAltTextAr() != null ? request.getAltTextAr() : plant.getNameAr());
+        plantImage.setAltTextEn(request.getAltTextEn() != null ? request.getAltTextEn() : plant.getNameEn());
+        plantImage.setIsPrimary(Boolean.TRUE.equals(request.getIsPrimary()));
+        plantImage.setDisplayOrder(nextOrder);
+        
+        PlantImage saved = plantImageRepository.save(plantImage);
+        log.info("Added image by URL for plant {}: {}", plantId, request.getImageUrl());
+        
+        return saved;
+    }
+    
+    /**
+     * إضافة عدة صور لنبتة بـ URLs (JSON)
+     */
+    @Transactional
+    public List<PlantImage> addBulkPlantImagesByUrl(Long plantId, List<PlantImageRequest> requests) {
+        Plant plant = plantRepository.findById(plantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Plant", "id", plantId));
+        
+        List<PlantImage> uploadedImages = new ArrayList<>();
+        
+        for (PlantImageRequest request : requests) {
+            PlantImage image = addPlantImageByUrl(plantId, request);
+            uploadedImages.add(image);
+        }
+        
+        log.info("Added {} images by URLs for plant {}", requests.size(), plantId);
         return uploadedImages;
     }
     
@@ -214,21 +278,28 @@ public class PlantImageUploadService {
     
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new BadRequestException("File is required");
+            throw new BadRequestException("الملف مطلوب | File is required");
         }
         
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new BadRequestException("File size exceeds maximum allowed (10MB)");
+            throw new BadRequestException(
+                String.format("حجم الملف يتجاوز الحد المسموح (5MB). الحجم الحالي: %.2f MB",
+                    file.getSize() / 1024.0 / 1024.0)
+            );
         }
         
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || !originalFilename.contains(".")) {
-            throw new BadRequestException("Invalid file name");
+            throw new BadRequestException("اسم الملف غير صحيح | Invalid file name");
         }
         
         String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
         if (!ALLOWED_EXTENSIONS.contains(extension)) {
-            throw new BadRequestException("File type not allowed. Allowed: " + String.join(", ", ALLOWED_EXTENSIONS));
+            throw new BadRequestException(
+                String.format("نوع الملف غير مسموح. الأنواع المسموحة: %s | Allowed types: %s",
+                    String.join(", ", ALLOWED_EXTENSIONS),
+                    String.join(", ", ALLOWED_EXTENSIONS))
+            );
         }
     }
     
