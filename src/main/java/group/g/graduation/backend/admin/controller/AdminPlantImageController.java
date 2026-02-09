@@ -1,11 +1,13 @@
 package group.g.graduation.backend.admin.controller;
 
+import group.g.graduation.backend.admin.dto.PlantImageRequest;
 import group.g.graduation.backend.admin.dto.PlantImageResponse;
 import group.g.graduation.backend.admin.service.PlantImageUploadService;
 import group.g.graduation.backend.common.model.PlantImage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -34,22 +36,68 @@ public class AdminPlantImageController {
     private final PlantImageUploadService imageUploadService;
     
     /**
-     * رفع صورة واحدة لنبتة
+     * رفع صورة واحدة لنبتة - Endpoint موحّد
+     */
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(
+        summary = "رفع صورة للنبتة",
+        description = "رفع ملف صورة (jpg/png/webp) بحجم أقصى 5MB"
+    )
+    public ResponseEntity<PlantImageResponse> uploadImageFile(
+            @PathVariable Long plantId,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "altTextAr", required = false) String altTextAr,
+            @RequestParam(value = "altTextEn", required = false) String altTextEn,
+            @RequestParam(value = "isPrimary", defaultValue = "false") Boolean isPrimary,
+            @RequestParam(value = "displayOrder", required = false) Integer displayOrder) {
+        
+        log.info("📤 Upload image for plant {}, size: {} KB, isPrimary: {}", 
+            plantId, file.getSize() / 1024, isPrimary);
+        
+        PlantImage image = imageUploadService.uploadPlantImage(
+            plantId, file, isPrimary, altTextAr, altTextEn, displayOrder
+        );
+        
+        log.info("✅ Image uploaded: {}", image.getImageUrl());
+        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(image));
+    }
+    
+    /**
+     * رفع صورة واحدة لنبتة (Multipart File)
      */
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "رفع صورة لنبتة")
     public ResponseEntity<PlantImageResponse> uploadImage(
             @PathVariable Long plantId,
             @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "isPrimary", defaultValue = "false") Boolean isPrimary) {
+            @RequestParam(value = "isPrimary", defaultValue = "false") Boolean isPrimary,
+            @RequestParam(value = "altTextAr", required = false) String altTextAr,
+            @RequestParam(value = "altTextEn", required = false) String altTextEn,
+            @RequestParam(value = "displayOrder", required = false) Integer displayOrder) {
         
         log.info("Uploading image for plant {}, isPrimary: {}", plantId, isPrimary);
-        PlantImage image = imageUploadService.uploadPlantImage(plantId, file, isPrimary);
+        PlantImage image = imageUploadService.uploadPlantImage(
+            plantId, file, isPrimary, altTextAr, altTextEn, displayOrder
+        );
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(image));
     }
     
     /**
-     * رفع عدة صور لنبتة
+     * إضافة صورة لنبتة (JSON URL)
+     */
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "إضافة صورة لنبتة برابط URL")
+    public ResponseEntity<PlantImageResponse> addImageByUrl(
+            @PathVariable Long plantId,
+            @Valid @RequestBody PlantImageRequest request) {
+        
+        log.info("Adding image by URL for plant {}: {}", plantId, request.getImageUrl());
+        PlantImage image = imageUploadService.addPlantImageByUrl(plantId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(image));
+    }
+    
+    /**
+     * رفع عدة صور لنبتة (Multipart Files)
      */
     @PostMapping(value = "/bulk", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "رفع عدة صور لنبتة")
@@ -61,6 +109,24 @@ public class AdminPlantImageController {
         log.info("Uploading {} images for plant {}", files.size(), plantId);
         List<PlantImage> images = imageUploadService.uploadPlantImages(plantId, files, primaryIndex);
         List<PlantImageResponse> responses = images.stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+        return ResponseEntity.status(HttpStatus.CREATED).body(responses);
+    }
+    
+    /**
+     * إضافة عدة صور لنبتة (JSON URLs)
+     */
+    @PostMapping(value = "/bulk", consumes = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "إضافة عدة صور لنبتة بروابط URLs")
+    public ResponseEntity<List<PlantImageResponse>> addBulkImagesByUrls(
+            @PathVariable Long plantId,
+            @Valid @RequestBody Map<String, List<PlantImageRequest>> requestBody) {
+        
+        List<PlantImageRequest> images = requestBody.get("images");
+        log.info("Adding {} images by URLs for plant {}", images.size(), plantId);
+        List<PlantImage> savedImages = imageUploadService.addBulkPlantImagesByUrl(plantId, images);
+        List<PlantImageResponse> responses = savedImages.stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
         return ResponseEntity.status(HttpStatus.CREATED).body(responses);
@@ -140,13 +206,18 @@ public class AdminPlantImageController {
             @PathVariable Long imageId,
             @RequestBody Map<String, String> altTexts) {
         
-        log.info("Updating alt text for image {} of plant {}", imageId, plantId);
+        log.info("🔧 [PATCH] /api/admin/plants/{}/images/{}/alt-text", plantId, imageId);
+        log.info("📥 Request body: {}", altTexts);
+        log.info("👤 User: {}", org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName());
+        
         PlantImage image = imageUploadService.updateImageAltText(
                 plantId, 
                 imageId, 
                 altTexts.get("altTextAr"), 
                 altTexts.get("altTextEn")
         );
+        
+        log.info("✅ Alt text updated successfully");
         return ResponseEntity.ok(toResponse(image));
     }
     
