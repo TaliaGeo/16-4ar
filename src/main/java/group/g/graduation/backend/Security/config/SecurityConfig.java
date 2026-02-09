@@ -134,15 +134,35 @@ public class SecurityConfig {
     public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
         org.springframework.web.cors.CorsConfiguration configuration = 
             new org.springframework.web.cors.CorsConfiguration();
-        configuration.setAllowedOriginPatterns(java.util.List.of("*"));
-        configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(java.util.List.of("*"));
+        
+        // Allow localhost origins for development
+        configuration.setAllowedOriginPatterns(java.util.List.of(
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+            "https://localhost:*",
+            "*"
+        ));
+        
+        // Allow ALL HTTP methods including PATCH
+        configuration.setAllowedMethods(java.util.List.of(
+            "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"
+        ));
+        
+        // Allow all headers
+        configuration.setAllowedHeaders(java.util.List.of(
+            "Authorization", "Content-Type", "Accept", "X-Requested-With",
+            "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"
+        ));
+        
         configuration.setAllowCredentials(true);
-        configuration.setExposedHeaders(java.util.List.of("Authorization"));
+        configuration.setExposedHeaders(java.util.List.of("Authorization", "Content-Type"));
+        configuration.setMaxAge(3600L); // Cache preflight for 1 hour
         
         org.springframework.web.cors.UrlBasedCorsConfigurationSource source = 
             new org.springframework.web.cors.UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
+        
+        log.info("✅ CORS configured: Methods=[GET,POST,PUT,PATCH,DELETE,OPTIONS]");
         return source;
     }
 
