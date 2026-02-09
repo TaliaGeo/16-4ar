@@ -29,8 +29,8 @@ public class AuditLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
-    // المستخدم الذي قام بالعملية
-    @Column(nullable = false)
+    // المستخدم الذي قام بالعملية (nullable for system actions)
+    @Column(nullable = true)
     private Long userId;
     
     private String userName;

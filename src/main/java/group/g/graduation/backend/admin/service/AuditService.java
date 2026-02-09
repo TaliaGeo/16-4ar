@@ -46,67 +46,127 @@ public class AuditService {
     // ===================== Audit Logging Methods =====================
     
     /**
-     * تسجيل عملية جديدة
+     * استخراج معلومات المستخدم الحالي من SecurityContext
+     * يُستدعى في main thread قبل أي async operations
      */
-    @Async
-    @Transactional
+    public AuditUserContext getCurrentUser() {
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
+                String email = auth.getName();
+                return userRepository.findByEmail(email)
+                        .map(user -> AuditUserContext.builder()
+                                .userId(user.getId())
+                                .userName(user.getFullName())
+                                .userEmail(user.getEmail())
+                                .build())
+                        .orElse(AuditUserContext.system());
+            }
+        } catch (Exception e) {
+            log.warn("Could not extract user from SecurityContext: {}", e.getMessage());
+        }
+        return AuditUserContext.system();
+    }
+    
+    /**
+     * تسجيل عملية ناجحة مع user context
+     */
+    public void logAction(AuditUserContext userContext, AuditAction action, String entityType, 
+                          Long entityId, String description, Object oldValue, Object newValue) {
+        logActionAsync(userContext, action, entityType, entityId, description, oldValue, newValue, null);
+    }
+    
+    /**
+     * تسجيل عملية ناجحة مع وقت التنفيذ
+     */
+    public void logAction(AuditUserContext userContext, AuditAction action, String entityType, 
+                          Long entityId, String description, Object oldValue, Object newValue, 
+                          long executionTime) {
+        logActionAsync(userContext, action, entityType, entityId, description, oldValue, newValue, executionTime);
+    }
+    
+    /**
+     * تسجيل عملية فاشلة مع user context
+     */
+    public void logFailedAction(AuditUserContext userContext, AuditAction action, String entityType, 
+                                Long entityId, String description, String errorMessage) {
+        logFailedActionAsync(userContext, action, entityType, entityId, description, errorMessage);
+    }
+    
+    /**
+     * تسجيل عملية بسيطة
+     */
+    public void logSimpleAction(AuditUserContext userContext, AuditAction action, String description) {
+        logSimpleActionAsync(userContext, action, description);
+    }
+    
+    // ===== Backward Compatibility Methods (auto-extract user) =====
+    
     public void logAction(AuditAction action, String entityType, Long entityId, 
                           String description, Object oldValue, Object newValue) {
-        try {
-            AuditLog auditLog = buildAuditLog(action, entityType, entityId, description, 
-                    toJson(oldValue), toJson(newValue), AuditStatus.SUCCESS, null, null);
-            auditLogRepository.save(auditLog);
-            log.debug("Audit log saved: {} - {} - {}", action, entityType, entityId);
-        } catch (Exception e) {
-            log.error("Failed to save audit log: {}", e.getMessage());
-        }
+        logAction(getCurrentUser(), action, entityType, entityId, description, oldValue, newValue);
     }
     
-    /**
-     * تسجيل عملية مع وقت التنفيذ
-     */
-    @Async
-    @Transactional
     public void logAction(AuditAction action, String entityType, Long entityId, 
-                          String description, Object oldValue, Object newValue, 
-                          long executionTime) {
-        try {
-            AuditLog auditLog = buildAuditLog(action, entityType, entityId, description, 
-                    toJson(oldValue), toJson(newValue), AuditStatus.SUCCESS, null, executionTime);
-            auditLogRepository.save(auditLog);
-        } catch (Exception e) {
-            log.error("Failed to save audit log: {}", e.getMessage());
-        }
+                          String description, Object oldValue, Object newValue, long executionTime) {
+        logAction(getCurrentUser(), action, entityType, entityId, description, oldValue, newValue, executionTime);
     }
     
-    /**
-     * تسجيل عملية فاشلة
-     */
-    @Async
-    @Transactional
     public void logFailedAction(AuditAction action, String entityType, Long entityId, 
                                 String description, String errorMessage) {
+        logFailedAction(getCurrentUser(), action, entityType, entityId, description, errorMessage);
+    }
+    
+    public void logSimpleAction(AuditAction action, String description) {
+        logSimpleAction(getCurrentUser(), action, description);
+    }
+    
+    // ===== Internal Async Methods =====
+    
+    @Async
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    void logActionAsync(AuditUserContext userContext, AuditAction action, String entityType, 
+                        Long entityId, String description, Object oldValue, Object newValue, 
+                        Long executionTime) {
         try {
-            AuditLog auditLog = buildAuditLog(action, entityType, entityId, description, 
-                    null, null, AuditStatus.FAILURE, errorMessage, null);
+            AuditLog auditLog = buildAuditLog(userContext, action, entityType, entityId, description, 
+                    toJson(oldValue), toJson(newValue), AuditStatus.SUCCESS, null, executionTime);
             auditLogRepository.save(auditLog);
+            log.debug("Audit log saved: {} - {} - {} by user {}", action, entityType, entityId, 
+                    userContext.getUserId());
         } catch (Exception e) {
-            log.error("Failed to save audit log: {}", e.getMessage());
+            log.error("Failed to save audit log: {}", e.getMessage(), e);
+            // لا نرمي exception - الـ audit لا يجب أن يفشل العملية الأساسية
         }
     }
     
-    /**
-     * تسجيل عملية بدون تفاصيل الكيان
-     */
     @Async
-    @Transactional
-    public void logSimpleAction(AuditAction action, String description) {
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    void logFailedActionAsync(AuditUserContext userContext, AuditAction action, String entityType, 
+                              Long entityId, String description, String errorMessage) {
         try {
-            AuditLog auditLog = buildAuditLog(action, null, null, description, 
+            AuditLog auditLog = buildAuditLog(userContext, action, entityType, entityId, description, 
+                    null, null, AuditStatus.FAILURE, errorMessage, null);
+            auditLogRepository.save(auditLog);
+            log.debug("Failed action logged: {} - {} - {} by user {}", action, entityType, entityId, 
+                    userContext.getUserId());
+        } catch (Exception e) {
+            log.error("Failed to save audit log for failed action: {}", e.getMessage(), e);
+            // لا نرمي exception - الـ audit لا يجب أن يفشل العملية الأساسية
+        }
+    }
+    
+    @Async
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    void logSimpleActionAsync(AuditUserContext userContext, AuditAction action, String description) {
+        try {
+            AuditLog auditLog = buildAuditLog(userContext, action, null, null, description, 
                     null, null, AuditStatus.SUCCESS, null, null);
             auditLogRepository.save(auditLog);
+            log.debug("Simple action logged: {} by user {}", action, userContext.getUserId());
         } catch (Exception e) {
-            log.error("Failed to save audit log: {}", e.getMessage());
+            log.error("Failed to save simple audit log: {}", e.getMessage(), e);
+            // لا نرمي exception - الـ audit لا يجب أن يفشل العملية الأساسية
         }
     }
     
@@ -347,8 +407,8 @@ public class AuditService {
     
     // ===================== Helper Methods =====================
     
-    private AuditLog buildAuditLog(AuditAction action, String entityType, Long entityId,
-                                    String description, String oldValue, String newValue,
+    private AuditLog buildAuditLog(AuditUserContext userContext, AuditAction action, String entityType, 
+                                    Long entityId, String description, String oldValue, String newValue,
                                     AuditStatus status, String errorMessage, Long executionTime) {
         AuditLog auditLog = new AuditLog();
         auditLog.setAction(action);
@@ -362,19 +422,16 @@ public class AuditService {
         auditLog.setExecutionTime(executionTime);
         auditLog.setCreatedAt(Instant.now());
         
-        // الحصول على معلومات المستخدم الحالي
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-            try {
-                String email = auth.getName();
-                userRepository.findByEmail(email).ifPresent(user -> {
-                    auditLog.setUserId(user.getId());
-                    auditLog.setUserName(user.getFullName());
-                    auditLog.setUserEmail(user.getEmail());
-                });
-            } catch (Exception e) {
-                log.warn("Could not get user info for audit log: {}", e.getMessage());
-            }
+        // تعيين معلومات المستخدم من userContext
+        if (userContext != null && userContext.getUserId() != null) {
+            auditLog.setUserId(userContext.getUserId());
+            auditLog.setUserName(userContext.getUserName());
+            auditLog.setUserEmail(userContext.getUserEmail());
+        } else {
+            // عمليات النظام (بدون مستخدم مسجل دخول)
+            auditLog.setUserId(-1L);
+            auditLog.setUserName("SYSTEM");
+            auditLog.setUserEmail("system@internal");
         }
         
         // الحصول على معلومات الطلب HTTP

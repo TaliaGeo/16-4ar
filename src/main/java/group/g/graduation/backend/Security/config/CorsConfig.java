@@ -29,25 +29,35 @@ public class CorsConfig {
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         
-        // Allow specified origins
-        config.setAllowedOriginPatterns(Arrays.asList(allowedOrigins.split(",")));
+        // Allow localhost and configured origins
+        List<String> origins = new java.util.ArrayList<>(Arrays.asList(allowedOrigins.split(",")));
+        origins.add("http://localhost:*");
+        origins.add("http://127.0.0.1:*");
+        config.setAllowedOriginPatterns(origins);
         
         // Allow credentials
         config.setAllowCredentials(true);
         
-        // Allow specified HTTP methods
-        config.setAllowedMethods(Arrays.asList(allowedMethods.split(",")));
+        // Allow ALL HTTP methods including PATCH
+        List<String> methods = new java.util.ArrayList<>(Arrays.asList(allowedMethods.split(",")));
+        if (!methods.contains("PATCH")) {
+            methods.add("PATCH");
+        }
+        if (!methods.contains("OPTIONS")) {
+            methods.add("OPTIONS");
+        }
+        config.setAllowedMethods(methods);
         
-        // Allow specified headers
-        config.setAllowedHeaders(Arrays.asList(allowedHeaders.split(",")));
+        // Allow all headers
+        config.setAllowedHeaders(Arrays.asList("*"));
         
-        // Expose the Authorization header
-        config.setExposedHeaders(List.of("Authorization"));
+        // Expose headers
+        config.setExposedHeaders(List.of("Authorization", "Content-Type"));
         
-        // How long the response from a pre-flight request can be cached
+        // Preflight cache duration
         config.setMaxAge(maxAge);
         
-        // Apply this configuration to all paths
+        // Apply to all paths
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         
