@@ -71,6 +71,7 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/auth/**",
                     "/api/security/**",
+                    "/api/email/test/**",  // Email testing endpoints
                     "/actuator/health",
                     "/swagger-ui/**",
                     "/v3/api-docs/**",

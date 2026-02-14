@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مرحباً بك</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            direction: rtl;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 32px;
+        }
+        .header .emoji {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+        .content {
+            padding: 30px;
+            text-align: center;
+        }
+        .greeting {
+            font-size: 24px;
+            color: #2E7D32;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .message {
+            color: #555;
+            font-size: 16px;
+            line-height: 1.8;
+            margin-bottom: 25px;
+        }
+        .features {
+            background-color: #E8F5E9;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+            text-align: right;
+        }
+        .feature {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .feature:last-child {
+            margin-bottom: 0;
+        }
+        .feature-icon {
+            font-size: 24px;
+            margin-left: 15px;
+        }
+        .feature-text {
+            color: #333;
+            font-size: 14px;
+        }
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            color: white;
+            padding: 15px 40px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .footer {
+            background-color: #f9f9f9;
+            padding: 20px;
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+        }
+        .social-links {
+            margin-top: 15px;
+        }
+        .social-links a {
+            margin: 0 10px;
+            font-size: 24px;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="emoji">🌿</div>
+            <h1>مرحباً بك في <span th:text="${appName}">غرسي</span>!</h1>
+        </div>
+        <div class="content">
+            <p class="greeting">أهلاً <span th:text="${userName}">المستخدم</span>! 🎉</p>
+            <p class="message">
+                نحن سعداء جداً بانضمامك إلى مجتمع غرسي! 
+                <br>
+                أنت الآن جاهز لبدء رحلتك في عالم الزراعة المنزلية.
+            </p>
+            
+            <div class="features">
+                <h3 style="color: #2E7D32; margin-top: 0;">ماذا يمكنك أن تفعل؟</h3>
+                <div class="feature">
+                    <span class="feature-icon">📱</span>
+                    <span class="feature-text">تعرف على النباتات باستخدام الكاميرا</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">💧</span>
+                    <span class="feature-text">احصل على تذكيرات السقي والتسميد</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">📅</span>
+                    <span class="feature-text">تابع تقويم الزراعة الخاص بك</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">🤖</span>
+                    <span class="feature-text">استشر مساعدنا الذكي في أي وقت</span>
+                </div>
+                <div class="feature">
+                    <span class="feature-icon">🌍</span>
+                    <span class="feature-text">اكتشف النباتات المناسبة لمنطقتك</span>
+                </div>
+            </div>
+            
+            <p class="message">
+                ابدأ الآن واستكشف عالم النباتات معنا! 🌱
+            </p>
+        </div>
+        <div class="footer">
+            <p>شكراً لانضمامك إلى <span th:text="${appName}">غرسي</span> 💚</p>
+            <p>© 2026 جميع الحقوق محفوظة</p>
+        </div>
+    </div>
+</body>
+</html>

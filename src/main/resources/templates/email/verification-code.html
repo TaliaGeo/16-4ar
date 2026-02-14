@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>رمز التحقق</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            direction: rtl;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        .header .emoji {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 30px;
+            text-align: center;
+        }
+        .greeting {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .code-box {
+            background-color: #E8F5E9;
+            border: 2px dashed #4CAF50;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .code {
+            font-size: 36px;
+            font-weight: bold;
+            color: #2E7D32;
+            letter-spacing: 8px;
+            font-family: monospace;
+        }
+        .message {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .warning {
+            background-color: #FFF3E0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+            color: #E65100;
+            font-size: 13px;
+        }
+        .footer {
+            background-color: #f9f9f9;
+            padding: 20px;
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="emoji">🌱</div>
+            <h1 th:text="${appName}">غرسي</h1>
+        </div>
+        <div class="content">
+            <p class="greeting">مرحباً <span th:text="${userName}">المستخدم</span>! 👋</p>
+            <p class="message">لقد طلبت رمز التحقق للوصول إلى حسابك.</p>
+            <div class="code-box">
+                <p style="margin: 0 0 10px 0; color: #666;">رمز التحقق الخاص بك:</p>
+                <div class="code" th:text="${verificationCode}">000000</div>
+            </div>
+            <p class="message">هذا الرمز صالح لمدة 10 دقائق فقط.</p>
+            <div class="warning">
+                ⚠️ إذا لم تطلب هذا الرمز، يرجى تجاهل هذه الرسالة.
+            </div>
+        </div>
+        <div class="footer">
+            <p>هذه رسالة آلية من تطبيق <span th:text="${appName}">غرسي</span></p>
+            <p>© 2026 جميع الحقوق محفوظة</p>
+        </div>
+    </div>
+</body>
+</html>

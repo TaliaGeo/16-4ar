@@ -14,6 +14,7 @@ import group.g.graduation.backend.Security.dto.PasswordResetTokenDTO;
 import group.g.graduation.backend.Security.dto.UserDTO;
 import group.g.graduation.backend.Security.model.PasswordResetToken;
 import group.g.graduation.backend.Security.repository.PasswordResetTokenRepository;
+import group.g.graduation.backend.common.email.EmailService;
 
 import java.time.Instant;
 import java.util.List;
@@ -33,6 +34,7 @@ public class PasswordService {
     private final PasswordResetTokenRepository tokenRepository;
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
     
     /**
      * Process a forgot password request and generate a reset token
@@ -70,7 +72,7 @@ public class PasswordService {
             tokenRepository.save(token);
         });
         
-        // Create new token
+        // Create new token (6-digit code)
         PasswordResetToken token = PasswordResetToken.createTokenForUser(
             user.getId(), 
             user.getEmail(), 
@@ -78,10 +80,16 @@ public class PasswordService {
         );
         tokenRepository.save(token);
         
-        log.info("Generated password reset token for user: {}", user.getEmail());
-        log.warn("===== PASSWORD RESET TOKEN (FOR TESTING ONLY) =====");
-        log.warn("Token: {}", token.getToken());
-        log.warn("===================================================");
+        log.info("Generated password reset code for user: {}", user.getEmail());
+        
+        // Send verification code via email
+        try {
+            emailService.sendVerificationCode(user.getEmail(), token.getToken(), user.getFullName());
+            log.info("Password reset code sent to: {}", user.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send password reset code to {}: {}", user.getEmail(), e.getMessage());
+            // Still return the token for testing, but log the email failure
+        }
         
         return token.getToken();
     }

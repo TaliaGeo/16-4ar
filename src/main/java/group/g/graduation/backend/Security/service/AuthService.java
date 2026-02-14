@@ -25,6 +25,7 @@ import group.g.graduation.backend.Security.jwt.JwtTokenProvider;
 import group.g.graduation.backend.Security.model.RefreshToken;
 import group.g.graduation.backend.Security.model.UserSession;
 import group.g.graduation.backend.Security.repository.RefreshTokenRepository;
+import group.g.graduation.backend.common.email.EmailService;
 import io.jsonwebtoken.Claims;
 
 @Service
@@ -38,6 +39,7 @@ public class AuthService {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final EmailService emailService;
     private final UserSessionService sessionService;
     
     @Value("${app.jwt.expiration-ms}")
@@ -91,6 +93,15 @@ public AuthResponse register(RegisterRequest registerRequest, HttpServletRequest
     UserDTO savedUser = userService.createUser(userDTO);
     
     log.info("User {} successfully registered", savedUser.getEmail());
+
+    // Send welcome email asynchronously
+    try {
+        emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getFullName());
+        log.info("Welcome email sent to {}", savedUser.getEmail());
+    } catch (Exception e) {
+        log.error("Failed to send welcome email to {}: {}", savedUser.getEmail(), e.getMessage());
+        // Don't fail registration if email fails
+    }
 
     // Return response without JWT token
     return new AuthResponse(

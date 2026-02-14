@@ -8,8 +8,8 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.security.SecureRandom;
 import java.time.Instant;
-import java.util.UUID;
 
 @Entity
 @Table(name = "password_reset_tokens")
@@ -19,12 +19,14 @@ import java.util.UUID;
 @AllArgsConstructor
 public class PasswordResetToken {
     
+    private static final SecureRandom RANDOM = new SecureRandom();
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
     @Column(nullable = false, unique = true)
-    private String token;
+    private String token;  // 6-digit code
     
     @Column(nullable = false)
     private Long userId;
@@ -46,6 +48,7 @@ public class PasswordResetToken {
     
     /**
      * Factory method to create a new token for a user
+     * Generates a 6-digit numeric code
      * 
      * @param userId The user ID
      * @param userEmail The user email
@@ -56,10 +59,19 @@ public class PasswordResetToken {
         return PasswordResetToken.builder()
                 .userId(userId)
                 .userEmail(userEmail)
-                .token(UUID.randomUUID().toString())
+                .token(generateSixDigitCode())
                 .expiryDate(Instant.now().plusSeconds(expirationMinutes * 60L))
                 .used(false)
                 .build();
+    }
+    
+    /**
+     * Generate a 6-digit numeric verification code
+     * @return 6-digit code as string (e.g., "123456")
+     */
+    private static String generateSixDigitCode() {
+        int code = 100000 + RANDOM.nextInt(900000); // Generates 100000-999999
+        return String.valueOf(code);
     }
     
     /**

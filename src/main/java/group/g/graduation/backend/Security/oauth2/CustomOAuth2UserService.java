@@ -20,6 +20,7 @@ import group.g.graduation.backend.Security.model.Role;
 import group.g.graduation.backend.Security.model.User;
 import group.g.graduation.backend.Security.repository.RoleRepository;
 import group.g.graduation.backend.Security.repository.UserRepository;
+import group.g.graduation.backend.common.email.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -33,6 +34,7 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
     
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -114,7 +116,18 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
         roles.add(userRole);
         user.setRoles(roles);
         
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        
+        // Send welcome email asynchronously
+        try {
+            emailService.sendWelcomeEmail(savedUser.getEmail(), savedUser.getFullName());
+            log.info("Welcome email sent to OAuth2 user: {}", savedUser.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send welcome email to {}: {}", savedUser.getEmail(), e.getMessage());
+            // Don't fail registration if email fails
+        }
+        
+        return savedUser;
     }
 
     private User updateExistingUser(User existingUser, OAuth2UserInfo oAuth2UserInfo) {

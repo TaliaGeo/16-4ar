@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تذكير بالسقي</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            direction: rtl;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #03A9F4, #0288D1);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .header .emoji {
+            font-size: 64px;
+            margin-bottom: 10px;
+        }
+        .content {
+            padding: 30px;
+            text-align: center;
+        }
+        .greeting {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .plant-name {
+            font-size: 28px;
+            font-weight: bold;
+            color: #0288D1;
+            margin: 20px 0;
+        }
+        .message {
+            color: #666;
+            font-size: 16px;
+            line-height: 1.8;
+            margin-bottom: 25px;
+        }
+        .tip-box {
+            background-color: #E1F5FE;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: right;
+        }
+        .tip-title {
+            color: #0288D1;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .tip-text {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .footer {
+            background-color: #f9f9f9;
+            padding: 20px;
+            text-align: center;
+            color: #888;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="emoji">💧</div>
+            <h1>حان وقت السقي!</h1>
+        </div>
+        <div class="content">
+            <p class="greeting">مرحباً <span th:text="${userName}">المستخدم</span>! 🌱</p>
+            
+            <p class="message">نباتك يحتاج إلى الماء اليوم:</p>
+            
+            <p class="plant-name" th:text="${plantName}">اسم النبات</p>
+            
+            <div class="tip-box">
+                <p class="tip-title">💡 نصيحة للسقي:</p>
+                <p class="tip-text">
+                    تأكد من سقي النبات في الصباح الباكر أو المساء لتجنب تبخر الماء السريع.
+                    اسقِ التربة مباشرة وتجنب رش الماء على الأوراق.
+                </p>
+            </div>
+            
+            <p class="message">
+                نباتاتك تعتمد عليك! 💚
+            </p>
+        </div>
+        <div class="footer">
+            <p>تذكير من تطبيق <span th:text="${appName}">غرسي</span></p>
+            <p>© 2026 جميع الحقوق محفوظة</p>
+        </div>
+    </div>
+</body>
+</html>
