@@ -54,15 +54,15 @@ spring:
       client:
         registration:
           google:
-            client-id: ${GOOGLE_CLIENT_ID:your-google-client-id}
-            client-secret: ${GOOGLE_CLIENT_SECRET:your-google-client-secret}
+            client-id: ${GOOGLE_CLIENT_ID:12472086647-mqehommkpjp9l806tmcslao0c7j9rng5.apps.googleusercontent.com}
+            client-secret: ${GOOGLE_CLIENT_SECRET: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}
             scope:
               - email
               - profile
             redirect-uri: "{baseUrl}/oauth2/callback/{registrationId}"
           facebook:
-            client-id: ${FACEBOOK_CLIENT_ID:your-facebook-client-id}
-            client-secret: ${FACEBOOK_CLIENT_SECRET:your-facebook-client-secret}
+            client-id: ${FACEBOOK_CLIENT_ID:test-facebook-app-id-for-local-testing}
+            client-secret: ${FACEBOOK_CLIENT_SECRET:test-facebook-app-secret-for-local-testing}
             scope:
               - email
               - public_profile
