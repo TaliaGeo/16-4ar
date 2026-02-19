@@ -352,35 +352,64 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
     }
     
-    // استبدل handleDataIntegrityViolationException بهذا:
-
+    /**
+     * معالجة أخطاء قاعدة البيانات (Duplicate entries, Foreign key constraints, etc.)
+     */
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
     public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(
             org.springframework.dao.DataIntegrityViolationException ex) {
         log.error("Data integrity violation: {}", ex.getMessage());
         
-        String message = "النبتة موجودة مسبقاً";
+        String message = "خطأ في البيانات";
+        String messageEn = "Data integrity error";
+        int statusCode = HttpStatus.BAD_REQUEST.value();
         String detailedMessage = ex.getMostSpecificCause().getMessage();
         
-        // تحليل الرسالة لمعرفة الحقل المكرر
+        // تحليل الرسالة لمعرفة نوع الخطأ
         if (detailedMessage != null) {
-            if (detailedMessage.contains("name_ar") || detailedMessage.contains("nameAr")) {
-                message = "نبتة بنفس الاسم العربي موجودة مسبقاً";
-            } else if (detailedMessage.contains("name_scientific") || detailedMessage.contains("nameScientific")) {
-                message = "نبتة بنفس الاسم العلمي موجودة مسبقاً";
-            } else if (detailedMessage.contains("duplicate")) {
-                message = "النبتة موجودة مسبقاً، الرجاء التحقق من البيانات";
+            String lowerMsg = detailedMessage.toLowerCase();
+            
+            // أخطاء التكرار (Duplicate)
+            if (lowerMsg.contains("duplicate") || lowerMsg.contains("unique")) {
+                statusCode = HttpStatus.CONFLICT.value();
+                
+                if (lowerMsg.contains("name_ar") || lowerMsg.contains("namear")) {
+                    message = "نبتة بنفس الاسم العربي موجودة مسبقاً";
+                    messageEn = "Plant with same Arabic name already exists";
+                } else if (lowerMsg.contains("name_scientific") || lowerMsg.contains("namescientific")) {
+                    message = "نبتة بنفس الاسم العلمي موجودة مسبقاً";
+                    messageEn = "Plant with same scientific name already exists";
+                } else if (lowerMsg.contains("email")) {
+                    message = "البريد الإلكتروني مُستخدم مسبقاً";
+                    messageEn = "Email already in use";
+                } else {
+                    message = "البيانات المُدخلة موجودة مسبقاً";
+                    messageEn = "Duplicate entry detected";
+                }
+            } 
+            // أخطاء Foreign Key
+            else if (lowerMsg.contains("foreign key") || lowerMsg.contains("violates")) {
+                statusCode = HttpStatus.BAD_REQUEST.value();
+                message = "لا يمكن حذف هذا العنصر لارتباطه بعناصر أخرى";
+                messageEn = "Cannot delete this item as it's referenced by other records";
             }
-            log.error("Duplicate field details: {}", detailedMessage);
+            // أخطاء NULL
+            else if (lowerMsg.contains("null") || lowerMsg.contains("not-null")) {
+                statusCode = HttpStatus.BAD_REQUEST.value();
+                message = "حقل مطلوب فارغ";
+                messageEn = "Required field is missing";
+            }
+            
+            log.error("DB Error details: {}", detailedMessage);
         }
         
         ErrorResponse errorResponse = new ErrorResponse(
-                HttpStatus.CONFLICT.value(),
-                message,
+                statusCode,
+                message + " | " + messageEn,
                 LocalDateTime.now()
         );
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+        
+        return ResponseEntity.status(statusCode).body(errorResponse);
     }
     // ==================== 500 INTERNAL SERVER ERROR ====================
     

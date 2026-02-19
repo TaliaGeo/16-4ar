@@ -5,6 +5,7 @@ import group.g.graduation.backend.admin.dto.PlantingQuestionResponse;
 import group.g.graduation.backend.admin.dto.QuestionOptionRequest;
 import group.g.graduation.backend.admin.dto.QuestionOptionResponse;
 import group.g.graduation.backend.admin.mapper.PlantingQuestionMapper;
+import group.g.graduation.backend.common.exception.DuplicateResourceException;
 import group.g.graduation.backend.common.model.PlantingQuestion;
 import group.g.graduation.backend.common.model.QuestionOption;
 import group.g.graduation.backend.common.repository.PlantingQuestionRepository;
@@ -93,7 +94,13 @@ public class AdminPlantingQuestionServiceImpl implements AdminPlantingQuestionSe
         
         // Check if question key already exists
         if (questionRepository.findByQuestionKey(request.getQuestionKey()).isPresent()) {
-            throw new IllegalArgumentException("مفتاح السؤال موجود مسبقاً: " + request.getQuestionKey());
+            String suggestedKey = generateUniqueQuestionKey(request.getQuestionKey());
+            String errorMsg = String.format(
+                "مفتاح السؤال '%s' موجود مسبقاً. جرّب: '%s'",
+                request.getQuestionKey(),
+                suggestedKey
+            );
+            throw new DuplicateResourceException(errorMsg);
         }
         
         PlantingQuestion question = mapper.toEntity(request);
@@ -119,7 +126,13 @@ public class AdminPlantingQuestionServiceImpl implements AdminPlantingQuestionSe
         
         // Check if question key already exists
         if (questionRepository.findByQuestionKey(request.getQuestionKey()).isPresent()) {
-            throw new IllegalArgumentException("مفتاح السؤال موجود مسبقاً: " + request.getQuestionKey());
+            String suggestedKey = generateUniqueQuestionKey(request.getQuestionKey());
+            String errorMsg = String.format(
+                "مفتاح السؤال '%s' موجود مسبقاً. جرّب: '%s'",
+                request.getQuestionKey(),
+                suggestedKey
+            );
+            throw new DuplicateResourceException(errorMsg);
         }
         
         PlantingQuestion question = mapper.toEntity(request);
@@ -624,6 +637,22 @@ public class AdminPlantingQuestionServiceImpl implements AdminPlantingQuestionSe
         if (request.getQuestionKey() == null || request.getQuestionKey().isBlank()) {
             throw new IllegalArgumentException("مفتاح السؤال مطلوب");
         }
+    }
+    
+    /**
+     * Generate unique question key by appending number if duplicate exists
+     * توليد مفتاح فريد للسؤال بإضافة رقم إذا كان مكرراً
+     */
+    private String generateUniqueQuestionKey(String baseKey) {
+        String suggestedKey = baseKey;
+        int counter = 2;
+        
+        // Try up to 100 variations
+        while (counter <= 100 && questionRepository.findByQuestionKey(suggestedKey).isPresent()) {
+            suggestedKey = baseKey + "_" + counter++;
+        }
+        
+        return suggestedKey;
     }
     
     /**

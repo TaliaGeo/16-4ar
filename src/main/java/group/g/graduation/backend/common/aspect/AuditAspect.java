@@ -1,6 +1,7 @@
 package group.g.graduation.backend.common.aspect;
 
 import group.g.graduation.backend.admin.service.AuditService;
+import group.g.graduation.backend.admin.service.AuditUserContext;
 import group.g.graduation.backend.common.annotation.Auditable;
 import group.g.graduation.backend.common.model.AuditLog.AuditAction;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,9 @@ public class AuditAspect {
             " && !execution(* group.g.graduation.backend.admin.controller.AdminAuditController.*(..))")
     public Object auditAdminOperation(ProceedingJoinPoint joinPoint) throws Throwable {
         long startTime = System.currentTimeMillis();
+        
+        // استخراج user context في main thread قبل proceed
+        AuditUserContext userContext = auditService.getCurrentUser();
         
         Method method = ((MethodSignature) joinPoint.getSignature()).getMethod();
         String methodName = method.getName();
@@ -87,7 +91,7 @@ public class AuditAspect {
                     
             boolean logValues = auditable != null && auditable.logValues();
             
-            auditService.logAction(action, entityType, entityId, description, null, 
+            auditService.logAction(userContext, action, entityType, entityId, description, null, 
                     logValues && (action == AuditAction.CREATE || action == AuditAction.UPDATE) ? result : null, 
                     executionTime);
             
@@ -99,7 +103,7 @@ public class AuditAspect {
             
             // تسجيل العملية الفاشلة
             String description = buildDescription(action, entityType, methodName);
-            auditService.logFailedAction(action, entityType, entityId, 
+            auditService.logFailedAction(userContext, action, entityType, entityId, 
                     description + " - فشل", e.getMessage());
             
             throw e;
