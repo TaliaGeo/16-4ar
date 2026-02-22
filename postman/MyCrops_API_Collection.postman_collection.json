@@ -1,0 +1,1001 @@
+{
+	"info": {
+		"_postman_id": "my-crops-collection-2026",
+		"name": "My Crops - صفحة محاصيلي",
+		"description": "مجموعة اختبار كاملة لصفحة محاصيلي:\n\nالترتيب الصحيح:\n0. تسجيل دخول\n1. إضافة نبتة للمحاصيل (add)\n2. نظرة عامة (overview)\n3-5. قوائم مخطط/مزروع/محصود\n6. تفاصيل مخططة\n7. نقل مخطط ← مزروع\n8. نظرة عامة على مزروعة\n9. مهام النبتة\n10. معلومات النبتة\n11. حصاد\n12-15. إجراءات المهام\n16-19. حالات خطأ",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8081",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "YOUR_JWT_TOKEN_HERE",
+			"type": "string"
+		},
+		{
+			"key": "userPlantId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "taskId",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "plantId",
+			"value": "2",
+			"type": "string"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "0. تسجيل دخول (جلب التوكن)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test('Status 200', () => pm.response.to.have.status(200));",
+							"",
+							"if (pm.response.code === 200) {",
+							"    var json = pm.response.json();",
+							"    var token = json.accessToken || json.token || json.access_token;",
+							"    if (token) {",
+							"        pm.collectionVariables.set('token', token);",
+							"        console.log('✅ Token saved successfully');",
+							"    }",
+							"    pm.test('Has accessToken', () => {",
+							"        pm.expect(json).to.have.property('accessToken');",
+							"    });",
+							"}"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"admin123\"\n}"
+				},
+				"url": {
+					"raw": "{{baseUrl}}/api/auth/login",
+					"host": ["{{baseUrl}}"],
+					"path": ["api", "auth", "login"]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "━━━━━━ إضافة نبتة ━━━━━━",
+			"item": [
+				{
+					"name": "1. إضافة نبتة للمحاصيل (PLANNED)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"pm.test('Plant added as PLANNED', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('userPlantId');",
+									"    pm.expect(json).to.have.property('plantId');",
+									"    pm.expect(json).to.have.property('plantNameAr');",
+									"    pm.expect(json).to.have.property('plantNameEn');",
+									"    pm.expect(json).to.have.property('nickname');",
+									"    pm.expect(json.status).to.equal('PLANNED');",
+									"    pm.expect(json).to.have.property('plannedDate');",
+									"    pm.expect(json).to.have.property('pendingTasksCount');",
+									"});",
+									"",
+									"var json = pm.response.json();",
+									"pm.collectionVariables.set('userPlantId', json.userPlantId);",
+									"console.log('📌 Saved userPlantId: ' + json.userPlantId);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/add/{{plantId}}?nickname=نعناع بلدي",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "add", "{{plantId}}"],
+							"query": [
+								{
+									"key": "nickname",
+									"value": "نعناع بلدي"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "━━━━━━ القوائم والنظرة العامة ━━━━━━",
+			"item": [
+				{
+					"name": "2. نظرة عامة على محاصيلي",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"pm.test('Response has counts and lists', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('plannedCount');",
+									"    pm.expect(json).to.have.property('plantedCount');",
+									"    pm.expect(json).to.have.property('harvestedCount');",
+									"    pm.expect(json).to.have.property('planned');",
+									"    pm.expect(json).to.have.property('planted');",
+									"    pm.expect(json).to.have.property('harvested');",
+									"    pm.expect(json.planned).to.be.an('array');",
+									"    pm.expect(json.planted).to.be.an('array');",
+									"    pm.expect(json.harvested).to.be.an('array');",
+									"});",
+									"",
+									"pm.test('Planned count >= 1', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.plannedCount).to.be.at.least(1);",
+									"});",
+									"",
+									"var json = pm.response.json();",
+									"if (json.planned && json.planned.length > 0) {",
+									"    pm.collectionVariables.set('userPlantId', json.planned[0].userPlantId);",
+									"    console.log('📌 Saved planned userPlantId: ' + json.planned[0].userPlantId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/overview",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "overview"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "3. قائمة النباتات المخططة",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"pm.test('Returns array', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.be.an('array');",
+									"});",
+									"",
+									"var json = pm.response.json();",
+									"if (json.length > 0) {",
+									"    pm.test('Card has required fields', () => {",
+									"        var card = json[0];",
+									"        pm.expect(card).to.have.property('userPlantId');",
+									"        pm.expect(card).to.have.property('plantNameAr');",
+									"        pm.expect(card).to.have.property('plantNameEn');",
+									"        pm.expect(card).to.have.property('nickname');",
+									"        pm.expect(card).to.have.property('imageUrl');",
+									"        pm.expect(card.status).to.equal('PLANNED');",
+									"        pm.expect(card).to.have.property('plannedDate');",
+									"        pm.expect(card).to.have.property('pendingTasksCount');",
+									"    });",
+									"    pm.collectionVariables.set('userPlantId', json[0].userPlantId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/planned",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "planned"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "4. قائمة النباتات المزروعة",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"pm.test('Returns array', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.be.an('array');",
+									"});",
+									"",
+									"var json = pm.response.json();",
+									"if (json.length > 0) {",
+									"    pm.test('All plants are PLANTED', () => {",
+									"        json.forEach(card => {",
+									"            pm.expect(card.status).to.equal('PLANTED');",
+									"        });",
+									"    });",
+									"    pm.collectionVariables.set('userPlantId', json[0].userPlantId);",
+									"    console.log('📌 Saved planted userPlantId: ' + json[0].userPlantId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/planted",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "planted"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "5. قائمة النباتات المحصودة",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"pm.test('Returns array', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.be.an('array');",
+									"});",
+									"",
+									"var json = pm.response.json();",
+									"if (json.length > 0) {",
+									"    pm.test('All plants are HARVESTED', () => {",
+									"        json.forEach(card => {",
+									"            pm.expect(card.status).to.equal('HARVESTED');",
+									"        });",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/harvested",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "harvested"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "━━━━━━ تفاصيل النبتة المخططة ━━━━━━",
+			"item": [
+				{
+					"name": "6. تفاصيل نبتة مخططة",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"pm.test('Has plant details', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('userPlantId');",
+									"    pm.expect(json).to.have.property('plantId');",
+									"    pm.expect(json).to.have.property('plantNameAr');",
+									"    pm.expect(json).to.have.property('plantNameEn');",
+									"    pm.expect(json).to.have.property('nameScientific');",
+									"    pm.expect(json).to.have.property('lightInfoAr');",
+									"    pm.expect(json).to.have.property('lightInfoEn');",
+									"    pm.expect(json).to.have.property('soilInfoAr');",
+									"    pm.expect(json).to.have.property('soilInfoEn');",
+									"    pm.expect(json).to.have.property('wateringInfoAr');",
+									"    pm.expect(json).to.have.property('wateringInfoEn');",
+									"    pm.expect(json).to.have.property('plantingStepsAr');",
+									"    pm.expect(json).to.have.property('plantingStepsEn');",
+									"    pm.expect(json).to.have.property('careInfoAr');",
+									"    pm.expect(json).to.have.property('careInfoEn');",
+									"    pm.expect(json).to.have.property('difficultyLevel');",
+									"    pm.expect(json).to.have.property('category');",
+									"    pm.expect(json).to.have.property('wateringIntervalDays');",
+									"    pm.expect(json).to.have.property('daysToHarvest');",
+									"    pm.expect(json).to.have.property('nickname');",
+									"    pm.expect(json).to.have.property('allImageUrls');",
+									"    pm.expect(json.allImageUrls).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/planned/{{userPlantId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "planned", "{{userPlantId}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "━━━━━━ تغيير الحالة ━━━━━━",
+			"item": [
+				{
+					"name": "7. نقل نبتة مخططة ← مزروعة",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"pm.test('Status changed to PLANTED', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('userPlantId');",
+									"    pm.expect(json.status).to.equal('PLANTED');",
+									"    pm.expect(json).to.have.property('plantedDate');",
+									"    pm.expect(json.plantedDate).to.not.be.null;",
+									"});",
+									"",
+									"var json = pm.response.json();",
+									"pm.collectionVariables.set('userPlantId', json.userPlantId);",
+									"console.log('📌 Planted userPlantId: ' + json.userPlantId);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"userPlantId\": {{userPlantId}},\n    \"nickname\": \"نبتتي الجميلة\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/mark-planted",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "mark-planted"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "━━━━━━ تبويبات النبتة المزروعة ━━━━━━",
+			"item": [
+				{
+					"name": "8. تبويب 1: نظرة عامة على المزروعة",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"pm.test('Overview has all fields', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('userPlantId');",
+									"    pm.expect(json).to.have.property('plantId');",
+									"    pm.expect(json).to.have.property('plantNameAr');",
+									"    pm.expect(json).to.have.property('plantNameEn');",
+									"    pm.expect(json).to.have.property('nameScientific');",
+									"    pm.expect(json).to.have.property('imageUrl');",
+									"    pm.expect(json).to.have.property('allImageUrls');",
+									"    pm.expect(json).to.have.property('nickname');",
+									"    pm.expect(json).to.have.property('plantedDate');",
+									"    pm.expect(json).to.have.property('daysSincePlanting');",
+									"    pm.expect(json).to.have.property('status');",
+									"    pm.expect(json.status).to.equal('PLANTED');",
+									"    pm.expect(json).to.have.property('wateringIntervalDays');",
+									"    pm.expect(json).to.have.property('difficultyLevel');",
+									"    pm.expect(json).to.have.property('category');",
+									"});",
+									"",
+									"pm.test('Has welcome message', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('welcomeMessageAr');",
+									"    pm.expect(json).to.have.property('welcomeMessageEn');",
+									"});",
+									"",
+									"pm.test('Has relative date texts', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('daysSincePlantingTextAr');",
+									"    pm.expect(json).to.have.property('daysSincePlantingTextEn');",
+									"    pm.expect(json).to.have.property('nextWateringDate');",
+									"    pm.expect(json).to.have.property('nextWateringRelativeAr');",
+									"    pm.expect(json).to.have.property('nextWateringRelativeEn');",
+									"    pm.expect(json).to.have.property('lastWateringDate');",
+									"    pm.expect(json).to.have.property('lastWateringRelativeAr');",
+									"    pm.expect(json).to.have.property('lastWateringRelativeEn');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/{{userPlantId}}/overview",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "{{userPlantId}}", "overview"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "9. تبويب 2: مهام النبتة المزروعة",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"pm.test('Tasks response structure', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('userPlantId');",
+									"    pm.expect(json).to.have.property('plantNameAr');",
+									"    pm.expect(json).to.have.property('plantNameEn');",
+									"    pm.expect(json).to.have.property('status');",
+									"    pm.expect(json).to.have.property('totalTasks');",
+									"    pm.expect(json).to.have.property('pendingCount');",
+									"    pm.expect(json).to.have.property('dueTodayCount');",
+									"    pm.expect(json).to.have.property('overdueCount');",
+									"    pm.expect(json).to.have.property('completedCount');",
+									"    pm.expect(json).to.have.property('snoozedCount');",
+									"    pm.expect(json).to.have.property('tasks');",
+									"});",
+									"",
+									"pm.test('Tasks is array', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json.tasks).to.be.an('array');",
+									"});",
+									"",
+									"var json = pm.response.json();",
+									"if (json.tasks && json.tasks.length > 0) {",
+									"    pm.test('Task has required fields', () => {",
+									"        var task = json.tasks[0];",
+									"        pm.expect(task).to.have.property('taskId');",
+									"        pm.expect(task).to.have.property('taskNameAr');",
+									"        pm.expect(task).to.have.property('taskNameEn');",
+									"        pm.expect(task).to.have.property('dueDate');",
+									"        pm.expect(task).to.have.property('dueTimeDisplay');",
+									"        pm.expect(task).to.have.property('dueDateRelativeAr');",
+									"        pm.expect(task).to.have.property('dueDateRelativeEn');",
+									"        pm.expect(task).to.have.property('status');",
+									"        pm.expect(task).to.have.property('icon');",
+									"        pm.expect(task).to.have.property('descriptionAr');",
+									"        pm.expect(task).to.have.property('descriptionEn');",
+									"    });",
+									"    pm.collectionVariables.set('taskId', json.tasks[0].taskId);",
+									"    console.log('📌 Saved taskId: ' + json.tasks[0].taskId);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/{{userPlantId}}/tasks",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "{{userPlantId}}", "tasks"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "10. تبويب 3: معلومات النبتة المزروعة",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"pm.test('Section 1: معلومات النبتة', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('userPlantId');",
+									"    pm.expect(json).to.have.property('plantId');",
+									"    pm.expect(json).to.have.property('plantNameAr');",
+									"    pm.expect(json).to.have.property('plantNameEn');",
+									"    pm.expect(json).to.have.property('nameScientific');",
+									"    pm.expect(json).to.have.property('shortDescriptionAr');",
+									"    pm.expect(json).to.have.property('shortDescriptionEn');",
+									"    pm.expect(json).to.have.property('lightInfoAr');",
+									"    pm.expect(json).to.have.property('lightInfoEn');",
+									"    pm.expect(json).to.have.property('soilInfoAr');",
+									"    pm.expect(json).to.have.property('soilInfoEn');",
+									"    pm.expect(json).to.have.property('wateringInfoAr');",
+									"    pm.expect(json).to.have.property('wateringInfoEn');",
+									"    pm.expect(json).to.have.property('difficultyLevel');",
+									"    pm.expect(json).to.have.property('category');",
+									"    pm.expect(json).to.have.property('wateringIntervalDays');",
+									"    pm.expect(json).to.have.property('minTemp');",
+									"    pm.expect(json).to.have.property('maxTemp');",
+									"});",
+									"",
+									"pm.test('Section 2: العناية', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('careInfoAr');",
+									"    pm.expect(json).to.have.property('careInfoEn');",
+									"    pm.expect(json).to.have.property('plantingStepsAr');",
+									"    pm.expect(json).to.have.property('plantingStepsEn');",
+									"    pm.expect(json).to.have.property('spacingCm');",
+									"    pm.expect(json).to.have.property('germinationDays');",
+									"});",
+									"",
+									"pm.test('Section 3: الحصاد', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('harvestInfoAr');",
+									"    pm.expect(json).to.have.property('harvestInfoEn');",
+									"    pm.expect(json).to.have.property('daysToHarvest');",
+									"    pm.expect(json).to.have.property('expectedHarvestDateAr');",
+									"    pm.expect(json).to.have.property('expectedHarvestDateEn');",
+									"});",
+									"",
+									"pm.test('Section 4: الاستخدامات', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('usesInfoAr');",
+									"    pm.expect(json).to.have.property('usesInfoEn');",
+									"    pm.expect(json).to.have.property('useTagsAr');",
+									"    pm.expect(json).to.have.property('useTagsEn');",
+									"    pm.expect(json.useTagsAr).to.be.an('array');",
+									"    pm.expect(json.useTagsEn).to.be.an('array');",
+									"});",
+									"",
+									"pm.test('Has disclaimer', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('disclaimerAr');",
+									"    pm.expect(json).to.have.property('disclaimerEn');",
+									"});",
+									"",
+									"pm.test('Has planting months', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('plantingMonths');",
+									"    pm.expect(json.plantingMonths).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/{{userPlantId}}/info",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "{{userPlantId}}", "info"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "━━━━━━ الحصاد ━━━━━━",
+			"item": [
+				{
+					"name": "11. حصاد النبتة (مزروعة ← محصودة)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"",
+									"pm.test('Status changed to HARVESTED', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('userPlantId');",
+									"    pm.expect(json.status).to.equal('HARVESTED');",
+									"    pm.expect(json).to.have.property('plantNameAr');",
+									"    pm.expect(json).to.have.property('plantNameEn');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/{{userPlantId}}/harvest",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "{{userPlantId}}", "harvest"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "━━━━━━ إجراءات المهام ━━━━━━",
+			"item": [
+				{
+					"name": "12. إكمال مهمة (COMPLETE)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    pm.test('Task completed', () => {",
+									"        var json = pm.response.json();",
+									"        pm.expect(json).to.have.property('taskId');",
+									"        pm.expect(json.status).to.equal('COMPLETED');",
+									"        pm.expect(json).to.have.property('completedAt');",
+									"        pm.expect(json).to.have.property('taskNameAr');",
+									"        pm.expect(json).to.have.property('taskNameEn');",
+									"    });",
+									"} else {",
+									"    pm.test('Task not found (run step 9 first to get taskId)', () => {",
+									"        pm.expect(pm.response.code).to.equal(404);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"taskId\": {{taskId}},\n    \"action\": \"COMPLETE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/tasks/action",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "tasks", "action"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "13. تذكير بعد ساعة (SNOOZE_1_HOUR)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    pm.test('Task snoozed 1 hour', () => {",
+									"        var json = pm.response.json();",
+									"        pm.expect(json).to.have.property('taskId');",
+									"        pm.expect(json.status).to.equal('SNOOZED');",
+									"        pm.expect(json).to.have.property('dueTimeDisplay');",
+									"        pm.expect(json).to.have.property('dueDateRelativeAr');",
+									"        pm.expect(json).to.have.property('dueDateRelativeEn');",
+									"    });",
+									"} else {",
+									"    pm.test('Task not found (run step 9 first to get taskId)', () => {",
+									"        pm.expect(pm.response.code).to.equal(404);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"taskId\": {{taskId}},\n    \"action\": \"SNOOZE_1_HOUR\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/tasks/action",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "tasks", "action"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "14. تذكير غداً (SNOOZE_TOMORROW)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    pm.test('Task snoozed to tomorrow', () => {",
+									"        var json = pm.response.json();",
+									"        pm.expect(json).to.have.property('taskId');",
+									"        pm.expect(json.status).to.equal('SNOOZED');",
+									"        pm.expect(json).to.have.property('dueTimeDisplay');",
+									"        pm.expect(json).to.have.property('dueDateRelativeAr');",
+									"        pm.expect(json).to.have.property('dueDateRelativeEn');",
+									"    });",
+									"} else {",
+									"    pm.test('Task not found (run step 9 first to get taskId)', () => {",
+									"        pm.expect(pm.response.code).to.equal(404);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"taskId\": {{taskId}},\n    \"action\": \"SNOOZE_TOMORROW\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/tasks/action",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "tasks", "action"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "15. تذكير لاحقاً - 3 أيام (SNOOZE_LATER)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    pm.test('Task snoozed 3 days', () => {",
+									"        var json = pm.response.json();",
+									"        pm.expect(json).to.have.property('taskId');",
+									"        pm.expect(json.status).to.equal('SNOOZED');",
+									"        pm.expect(json).to.have.property('dueTimeDisplay');",
+									"        pm.expect(json).to.have.property('dueDateRelativeAr');",
+									"        pm.expect(json).to.have.property('dueDateRelativeEn');",
+									"    });",
+									"} else {",
+									"    pm.test('Task not found (run step 9 first to get taskId)', () => {",
+									"        pm.expect(pm.response.code).to.equal(404);",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"taskId\": {{taskId}},\n    \"action\": \"SNOOZE_LATER\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/tasks/action",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "tasks", "action"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "━━━━━━ حالات الخطأ ━━━━━━",
+			"item": [
+				{
+					"name": "16. خطأ: نبتة غير موجودة (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 404', () => {",
+									"    pm.expect(pm.response.code).to.equal(404);",
+									"});",
+									"",
+									"pm.test('Has error message', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/planned/99999",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "planned", "99999"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "17. خطأ: مهمة غير موجودة (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 404', () => {",
+									"    pm.expect(pm.response.code).to.equal(404);",
+									"});",
+									"",
+									"pm.test('Has error message', () => {",
+									"    var json = pm.response.json();",
+									"    pm.expect(json).to.have.property('message');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"taskId\": 99999,\n    \"action\": \"COMPLETE\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/tasks/action",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "tasks", "action"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "18. خطأ: بدون توكن (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 401 or 403', () => {",
+									"    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/overview",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "overview"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "19. خطأ: حصاد نبتة غير موجودة (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 400 or 404', () => {",
+									"    pm.expect(pm.response.code).to.be.oneOf([400, 404]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/user/my-crops/99999/harvest",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "user", "my-crops", "99999", "harvest"]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}
