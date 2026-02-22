@@ -1,5 +1,21 @@
 package group.g.graduation.backend.admin.controller;
 
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import group.g.graduation.backend.admin.dto.PlantingQuestionRequest;
 import group.g.graduation.backend.admin.dto.PlantingQuestionResponse;
 import group.g.graduation.backend.admin.dto.QuestionOptionRequest;
@@ -11,13 +27,6 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * Admin Controller for managing Planting Questions and Options
@@ -180,29 +189,9 @@ public class AdminPlantingQuestionController {
     
     // ============ Initialization & Stats ============
     
-    @PostMapping("/initialize")
-    @Operation(summary = "Initialize default questions", 
-               description = "Initialize the 5 required questions + optional questions with their options")
-    public ResponseEntity<Map<String, Object>> initializeDefaultQuestions() {
-        boolean existed = questionService.hasDefaultQuestions();
-        questionService.initializeDefaultQuestions();
-        
-        return ResponseEntity.ok(Map.of(
-                "message", existed ? "الأسئلة الافتراضية موجودة مسبقاً" : "تم إنشاء الأسئلة الافتراضية بنجاح",
-                "wasNew", !existed,
-                "stats", questionService.getQuestionStats()
-        ));
-    }
-    
     @GetMapping("/stats")
     @Operation(summary = "Get question statistics", description = "Get statistics about questions and options")
     public ResponseEntity<PlantingQuestionStats> getQuestionStats() {
         return ResponseEntity.ok(questionService.getQuestionStats());
-    }
-    
-    @GetMapping("/check-defaults")
-    @Operation(summary = "Check if defaults exist", description = "Check if default questions have been initialized")
-    public ResponseEntity<Map<String, Boolean>> checkDefaultsExist() {
-        return ResponseEntity.ok(Map.of("exists", questionService.hasDefaultQuestions()));
     }
 }

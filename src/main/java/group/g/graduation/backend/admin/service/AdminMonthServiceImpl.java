@@ -1,5 +1,11 @@
 package group.g.graduation.backend.admin.service;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import group.g.graduation.backend.admin.dto.MonthPlantRequest;
 import group.g.graduation.backend.admin.dto.MonthPlantResponse;
 import group.g.graduation.backend.admin.dto.MonthRequest;
@@ -15,11 +21,6 @@ import group.g.graduation.backend.common.repository.PlantRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Implementation of AdminMonthService
@@ -231,53 +232,6 @@ public class AdminMonthServiceImpl implements AdminMonthService {
     }
     
     // ===================== Bulk Operations =====================
-    
-    @Override
-    public List<MonthResponse> initializeDefaultMonths() {
-        log.info("تهيئة الشهور الـ 12 بالبيانات الافتراضية");
-        
-        List<Month> months = new ArrayList<>();
-        
-        // تعريف الشهور مع الفصول والأوصاف
-        String[][] monthsData = {
-                {"1", "كانون الثاني", "January", "WINTER", "طقس بارد مع احتمال هطول الأمطار والثلوج في المرتفعات", "Cold weather with possible rain and snow in highlands"},
-                {"2", "شباط", "February", "WINTER", "استمرار البرد مع أمطار متوقعة", "Continued cold with expected rainfall"},
-                {"3", "آذار", "March", "SPRING", "بداية الربيع، الطقس معتدل ومناسب للزراعة", "Beginning of spring, moderate weather suitable for planting"},
-                {"4", "نيسان", "April", "SPRING", "طقس ربيعي لطيف، موسم الزراعة الرئيسي", "Pleasant spring weather, main planting season"},
-                {"5", "أيار", "May", "SPRING", "نهاية الربيع، ارتفاع تدريجي في درجات الحرارة", "End of spring, gradual temperature increase"},
-                {"6", "حزيران", "June", "SUMMER", "بداية الصيف، طقس حار وجاف", "Beginning of summer, hot and dry weather"},
-                {"7", "تموز", "July", "SUMMER", "ذروة الصيف، طقس حار جداً", "Peak summer, very hot weather"},
-                {"8", "آب", "August", "SUMMER", "استمرار الحرارة العالية", "Continued high temperatures"},
-                {"9", "أيلول", "September", "AUTUMN", "بداية الخريف، انخفاض تدريجي في الحرارة", "Beginning of autumn, gradual temperature decrease"},
-                {"10", "تشرين الأول", "October", "AUTUMN", "طقس خريفي معتدل، موسم زراعة ثانوي", "Moderate autumn weather, secondary planting season"},
-                {"11", "تشرين الثاني", "November", "AUTUMN", "نهاية الخريف، بداية موسم الأمطار", "End of autumn, beginning of rainy season"},
-                {"12", "كانون الأول", "December", "WINTER", "بداية الشتاء، طقس بارد مع أمطار", "Beginning of winter, cold weather with rain"}
-        };
-        
-        for (String[] data : monthsData) {
-            int monthNumber = Integer.parseInt(data[0]);
-            
-            // تخطي إذا كان الشهر موجوداً مسبقاً
-            if (monthRepository.findByMonthNumber(monthNumber).isPresent()) {
-                log.info("الشهر {} موجود مسبقاً، تخطي...", monthNumber);
-                continue;
-            }
-            
-            Month month = Month.builder()
-                    .monthNumber(monthNumber)
-                    .nameAr(data[1])
-                    .nameEn(data[2])
-                    .season(Season.valueOf(data[3]))
-                    .weatherDescriptionAr(data[4])
-                    .weatherDescriptionEn(data[5])
-                    .build();
-            
-            months.add(monthRepository.save(month));
-        }
-        
-        log.info("تم تهيئة {} شهر بنجاح", months.size());
-        return monthMapper.toResponseList(months);
-    }
     
     @Override
     public List<MonthPlantResponse> addPlantToMultipleMonths(Long plantId, List<Integer> monthNumbers, 

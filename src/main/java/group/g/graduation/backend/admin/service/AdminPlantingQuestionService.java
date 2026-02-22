@@ -1,11 +1,11 @@
 package group.g.graduation.backend.admin.service;
 
+import java.util.List;
+
 import group.g.graduation.backend.admin.dto.PlantingQuestionRequest;
 import group.g.graduation.backend.admin.dto.PlantingQuestionResponse;
 import group.g.graduation.backend.admin.dto.QuestionOptionRequest;
 import group.g.graduation.backend.admin.dto.QuestionOptionResponse;
-
-import java.util.List;
 
 /**
  * Service interface for Planting Question management - خدمة إدارة أسئلة الزراعة
@@ -153,19 +153,7 @@ public interface AdminPlantingQuestionService {
      */
     void reorderOptions(Long questionId, List<Long> optionIds);
     
-    // ============ Initialization ============
-    
-    /**
-     * Initialize default questions and options (5 required + optional)
-     * Based on the HTML mockup design
-     */
-    void initializeDefaultQuestions();
-    
-    /**
-     * Check if default questions exist
-     * @return true if default questions exist
-     */
-    boolean hasDefaultQuestions();
+
     
     /**
      * Get statistics about questions

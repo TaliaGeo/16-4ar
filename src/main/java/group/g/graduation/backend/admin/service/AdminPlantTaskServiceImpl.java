@@ -1,6 +1,16 @@
 package group.g.graduation.backend.admin.service;
 
-import group.g.graduation.backend.admin.dto.*;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import group.g.graduation.backend.admin.dto.PlantImageRequest;
+import group.g.graduation.backend.admin.dto.PlantImageResponse;
+import group.g.graduation.backend.admin.dto.PlantTaskRequest;
+import group.g.graduation.backend.admin.dto.PlantTaskResponse;
+import group.g.graduation.backend.admin.dto.TaskTypeRequest;
+import group.g.graduation.backend.admin.dto.TaskTypeResponse;
 import group.g.graduation.backend.admin.mapper.PlantTaskMapper;
 import group.g.graduation.backend.common.model.Plant;
 import group.g.graduation.backend.common.model.PlantImage;
@@ -13,11 +23,6 @@ import group.g.graduation.backend.common.repository.TaskTypeRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Implementation of AdminPlantTaskService
@@ -218,44 +223,6 @@ public class AdminPlantTaskServiceImpl implements AdminPlantTaskService {
         
         taskTypeRepository.delete(taskType);
         log.info("تم حذف نوع المهمة بنجاح - ID: {}", id);
-    }
-    
-    @Override
-    public List<TaskTypeResponse> initializeDefaultTaskTypes() {
-        log.info("تهيئة أنواع المهام الافتراضية");
-        
-        String[][] defaultTypes = {
-                {"ري", "Watering", "💧", "سقاية النبتة بالماء", "Watering the plant"},
-                {"تسميد", "Fertilizing", "🧪", "إضافة السماد للتربة", "Adding fertilizer to the soil"},
-                {"تقليم", "Pruning", "✂️", "قص الأوراق والأغصان الزائدة", "Cutting excess leaves and branches"},
-                {"حصاد", "Harvesting", "🌾", "جمع المحصول الجاهز", "Collecting the ready harvest"},
-                {"رش", "Spraying", "🌫️", "رش المبيدات أو المغذيات", "Spraying pesticides or nutrients"},
-                {"تفقد", "Inspection", "👀", "تفقد صحة النبتة", "Checking plant health"},
-                {"نقل", "Transplanting", "🪴", "نقل النبتة لوعاء أكبر", "Moving plant to a larger pot"},
-                {"تعشيب", "Weeding", "🌿", "إزالة الأعشاب الضارة", "Removing weeds"}
-        };
-        
-        List<TaskType> created = new ArrayList<>();
-        
-        for (String[] data : defaultTypes) {
-            // تخطي إذا كان موجوداً مسبقاً
-            if (taskTypeRepository.findByNameAr(data[0]).isPresent()) {
-                log.info("نوع المهمة '{}' موجود مسبقاً، تخطي...", data[0]);
-                continue;
-            }
-            
-            TaskType taskType = new TaskType();
-            taskType.setNameAr(data[0]);
-            taskType.setNameEn(data[1]);
-            taskType.setIcon(data[2]);
-            taskType.setDescriptionAr(data[3]);
-            taskType.setDescriptionEn(data[4]);
-            
-            created.add(taskTypeRepository.save(taskType));
-        }
-        
-        log.info("تم تهيئة {} نوع مهمة بنجاح", created.size());
-        return mapper.toTaskTypeResponseList(created);
     }
     
     // ===================== PlantTask Operations =====================

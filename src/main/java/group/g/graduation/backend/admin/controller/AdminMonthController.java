@@ -1,5 +1,20 @@
 package group.g.graduation.backend.admin.controller;
 
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import group.g.graduation.backend.admin.dto.MonthPlantRequest;
 import group.g.graduation.backend.admin.dto.MonthPlantResponse;
 import group.g.graduation.backend.admin.dto.MonthRequest;
@@ -15,13 +30,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * Admin controller for Month and MonthPlant management
@@ -141,15 +149,6 @@ public class AdminMonthController {
         log.info("REST: حذف الشهر - ID: {}", id);
         monthService.deleteMonth(id);
         return ResponseEntity.noContent().build();
-    }
-    
-    @PostMapping("/initialize")
-    @Operation(summary = "تهيئة الشهور الافتراضية", description = "إنشاء الشهور الـ 12 بالبيانات الافتراضية لفلسطين")
-    @ApiResponse(responseCode = "201", description = "تم تهيئة الشهور بنجاح")
-    public ResponseEntity<List<MonthResponse>> initializeMonths() {
-        log.info("REST: تهيئة الشهور الافتراضية");
-        List<MonthResponse> months = monthService.initializeDefaultMonths();
-        return ResponseEntity.status(HttpStatus.CREATED).body(months);
     }
     
     // ===================== MonthPlant Endpoints =====================

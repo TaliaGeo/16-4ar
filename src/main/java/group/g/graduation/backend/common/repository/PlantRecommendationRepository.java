@@ -1,13 +1,14 @@
 package group.g.graduation.backend.common.repository;
 
-import group.g.graduation.backend.common.model.PlantRecommendation;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Optional;
+import group.g.graduation.backend.common.model.PlantRecommendation;
 
 @Repository
 public interface PlantRecommendationRepository extends JpaRepository<PlantRecommendation, Long> {
@@ -17,6 +18,10 @@ public interface PlantRecommendationRepository extends JpaRepository<PlantRecomm
     
     // جلب توصيات مستخدم لجلسة معينة
     List<PlantRecommendation> findByUserIdAndSessionIdOrderByMatchPercentageDesc(Long userId, String sessionId);
+
+    // جلب توصيات مستخدم لجلسة معينة مع تفاصيل النبات
+    @Query("SELECT pr FROM PlantRecommendation pr JOIN FETCH pr.plant WHERE pr.user.id = :userId AND pr.sessionId = :sessionId ORDER BY pr.matchPercentage DESC")
+    List<PlantRecommendation> findByUserIdAndSessionIdWithPlant(@Param("userId") Long userId, @Param("sessionId") String sessionId);
     
     // جلب توصية لنبتة في جلسة
     Optional<PlantRecommendation> findBySessionIdAndPlantId(String sessionId, Long plantId);

@@ -1,8 +1,13 @@
 package group.g.graduation.backend.admin.service;
 
-import group.g.graduation.backend.admin.dto.*;
-
 import java.util.List;
+
+import group.g.graduation.backend.admin.dto.PlantImageRequest;
+import group.g.graduation.backend.admin.dto.PlantImageResponse;
+import group.g.graduation.backend.admin.dto.PlantTaskRequest;
+import group.g.graduation.backend.admin.dto.PlantTaskResponse;
+import group.g.graduation.backend.admin.dto.TaskTypeRequest;
+import group.g.graduation.backend.admin.dto.TaskTypeResponse;
 
 /**
  * Admin service for PlantImage, TaskType, and PlantTask management
@@ -73,11 +78,6 @@ public interface AdminPlantTaskService {
      * حذف نوع مهمة
      */
     void deleteTaskType(Long id);
-    
-    /**
-     * تهيئة أنواع المهام الافتراضية
-     */
-    List<TaskTypeResponse> initializeDefaultTaskTypes();
     
     // ===================== PlantTask Operations =====================
     

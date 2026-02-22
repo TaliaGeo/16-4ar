@@ -1,12 +1,12 @@
 package group.g.graduation.backend.admin.service;
 
+import java.util.List;
+
 import group.g.graduation.backend.admin.dto.MonthPlantRequest;
 import group.g.graduation.backend.admin.dto.MonthPlantResponse;
 import group.g.graduation.backend.admin.dto.MonthRequest;
 import group.g.graduation.backend.admin.dto.MonthResponse;
 import group.g.graduation.backend.common.enums.Season;
-
-import java.util.List;
 
 /**
  * Admin service for Month and MonthPlant management
@@ -104,11 +104,6 @@ public interface AdminMonthService {
     boolean existsMonthPlant(Long monthId, Long plantId);
     
     // ===================== Bulk Operations =====================
-    
-    /**
-     * تهيئة الشهور الـ 12 بالبيانات الافتراضية
-     */
-    List<MonthResponse> initializeDefaultMonths();
     
     /**
      * إضافة نبتة لعدة أشهر دفعة واحدة

@@ -1,5 +1,11 @@
 package group.g.graduation.backend.admin.service;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import group.g.graduation.backend.admin.dto.PlantingQuestionRequest;
 import group.g.graduation.backend.admin.dto.PlantingQuestionResponse;
 import group.g.graduation.backend.admin.dto.QuestionOptionRequest;
@@ -13,11 +19,6 @@ import group.g.graduation.backend.common.repository.QuestionOptionRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Service implementation for Planting Question management
@@ -388,219 +389,7 @@ public class AdminPlantingQuestionServiceImpl implements AdminPlantingQuestionSe
         log.info("Reordered options for question ID: {} successfully", questionId);
     }
     
-    // ============ Initialization ============
-    
-    @Override
-    public void initializeDefaultQuestions() {
-        log.info("Initializing default planting questions...");
-        
-        if (hasDefaultQuestions()) {
-            log.info("Default questions already exist, skipping initialization");
-            return;
-        }
-        
-        // ===== السؤال 1: أين ستزرع؟ (site) =====
-        createQuestionWithOptionsInternal(
-                "أين ستزرع؟",
-                "Where will you plant?",
-                "site",
-                true, false, 1,
-                List.of(
-                        new OptionData("داخل المنزل", "Indoor", "indoor", 1),
-                        new OptionData("شرفة أو بلكونة", "Balcony", "balcony", 2),
-                        new OptionData("سطح أو تراس", "Rooftop", "rooftop", 3),
-                        new OptionData("حديقة أو أرض", "Garden/Ground", "garden", 4),
-                        new OptionData("مش متأكد", "Not sure", "unknown", 5)
-                )
-        );
-        
-        // ===== السؤال 2: كم ضوء يصل للمكان؟ (light) =====
-        createQuestionWithOptionsInternal(
-                "كم ضوء يصل للمكان؟",
-                "How much light does the place get?",
-                "light",
-                true, false, 2,
-                List.of(
-                        new OptionData("شمس مباشرة (6+ ساعات)", "Full sun (6+ hours)", "full_sun", 1),
-                        new OptionData("شمس جزئية (3-6 ساعات)", "Partial sun (3-6 hours)", "partial_sun", 2),
-                        new OptionData("ضوء غير مباشر ساطع", "Bright indirect light", "bright_indirect", 3),
-                        new OptionData("ضوء ضعيف", "Low light", "low_light", 4),
-                        new OptionData("مش متأكد", "Not sure", "unknown", 5)
-                )
-        );
-        
-        // ===== السؤال 3: ستزرع في ماذا؟ (container) =====
-        createQuestionWithOptionsInternal(
-                "ستزرع في ماذا؟",
-                "What will you plant in?",
-                "container",
-                true, false, 3,
-                List.of(
-                        new OptionData("أصيص صغير (<20 سم)", "Small pot (<20cm)", "small_pot", 1),
-                        new OptionData("أصيص متوسط (20-35 سم)", "Medium pot (20-35cm)", "medium_pot", 2),
-                        new OptionData("أصيص كبير (>35 سم)", "Large pot (>35cm)", "large_pot", 3),
-                        new OptionData("حوض أو أرض", "Bed or ground", "bed_or_ground", 4),
-                        new OptionData("مش متأكد", "Not sure", "unknown", 5)
-                )
-        );
-        
-        // ===== السؤال 4: كم مرة تقدر تروي؟ (water) =====
-        createQuestionWithOptionsInternal(
-                "كم مرة تقدر تروي؟",
-                "How often can you water?",
-                "water",
-                true, false, 4,
-                List.of(
-                        new OptionData("يومياً", "Daily", "daily", 1),
-                        new OptionData("كل 2-3 أيام", "Every 2-3 days", "every_2_3", 2),
-                        new OptionData("مرة أسبوعياً", "Weekly", "weekly", 3),
-                        new OptionData("غير منتظم", "Irregular", "irregular", 4),
-                        new OptionData("مش متأكد", "Not sure", "unknown", 5)
-                )
-        );
-        
-        // ===== السؤال 5: نوع التربة (soil) =====
-        createQuestionWithOptionsInternal(
-                "ما نوع التربة المتاحة؟",
-                "What type of soil is available?",
-                "soil",
-                true, false, 5,
-                List.of(
-                        new OptionData("تربة أصص جاهزة", "Potting mix", "potting_mix", 1),
-                        new OptionData("تربة حديقة عادية", "Garden soil", "garden_soil", 2),
-                        new OptionData("تربة رملية", "Sandy soil", "sandy", 3),
-                        new OptionData("تربة طينية", "Clay soil", "clay", 4),
-                        new OptionData("خليط كمبوست", "Compost mix", "compost_mix", 5),
-                        new OptionData("مش متأكد", "Not sure", "unknown", 6)
-                )
-        );
-        
-        // ===== الأسئلة الاختيارية =====
-        
-        // السؤال 6: نوع التصريف (drainage) - اختياري
-        createQuestionWithOptionsInternal(
-                "كيف حال التصريف في المكان؟",
-                "How is the drainage in the area?",
-                "drainage",
-                false, false, 6,
-                List.of(
-                        new OptionData("تصريف جيد", "Good drainage", "good", 1),
-                        new OptionData("تصريف متوسط", "Average drainage", "average", 2),
-                        new OptionData("تصريف ضعيف (ماء واقف)", "Poor drainage", "poor", 3),
-                        new OptionData("مش متأكد", "Not sure", "unknown", 4)
-                )
-        );
-        
-        // السؤال 7: فتحات تصريف الأصيص (holes) - اختياري
-        createQuestionWithOptionsInternal(
-                "هل للأصيص فتحات تصريف؟",
-                "Does the pot have drainage holes?",
-                "holes",
-                false, false, 7,
-                List.of(
-                        new OptionData("نعم، فتحات كافية", "Yes, enough holes", "yes", 1),
-                        new OptionData("فتحة واحدة صغيرة", "One small hole", "partial", 2),
-                        new OptionData("لا يوجد فتحات", "No holes", "no", 3),
-                        new OptionData("سأزرع في الأرض", "Planting in ground", "ground", 4)
-                )
-        );
-        
-        // السؤال 8: التعرض للرياح (wind) - اختياري (يظهر لو اختار شرفة/سطح/حديقة)
-        createQuestionWithOptionsInternal(
-                "هل المكان معرض للرياح؟",
-                "Is the area exposed to wind?",
-                "wind",
-                false, false, 8,
-                List.of(
-                        new OptionData("محمي من الرياح", "Sheltered from wind", "sheltered", 1),
-                        new OptionData("رياح خفيفة أحياناً", "Light wind sometimes", "light", 2),
-                        new OptionData("رياح قوية متكررة", "Strong frequent wind", "strong", 3),
-                        new OptionData("مش متأكد", "Not sure", "unknown", 4)
-                )
-        );
-        
-        // السؤال 9: إضاءة نمو (growlight) - اختياري (يظهر لو اختار داخل المنزل أو ضوء ضعيف)
-        createQuestionWithOptionsInternal(
-                "هل لديك إضاءة نمو صناعية؟",
-                "Do you have grow lights?",
-                "growlight",
-                false, false, 9,
-                List.of(
-                        new OptionData("نعم، إضاءة LED للنباتات", "Yes, LED grow lights", "yes_led", 1),
-                        new OptionData("نعم، إضاءة عادية قوية", "Yes, strong regular lights", "yes_regular", 2),
-                        new OptionData("لا يوجد", "No", "no", 3),
-                        new OptionData("سأشتري إذا لزم", "Will buy if needed", "will_buy", 4)
-                )
-        );
-        
-        // السؤال 10: التفضيلات (prefs) - اختياري، متعدد الاختيارات
-        createQuestionWithOptionsInternal(
-                "ما تفضيلاتك للنباتات؟",
-                "What are your plant preferences?",
-                "prefs",
-                false, true, 10,  // allowMultiple = true
-                List.of(
-                        new OptionData("سهلة للمبتدئين", "Easy for beginners", "beginner", 1),
-                        new OptionData("للشاي والمشروبات", "For tea and drinks", "tea", 2),
-                        new OptionData("للطبخ والتتبيل", "For cooking", "cooking", 3),
-                        new OptionData("عطرية", "Aromatic", "aromatic", 4),
-                        new OptionData("طبية وعلاجية", "Medicinal", "medicinal", 5),
-                        new OptionData("قليلة استهلاك الماء", "Low water needs", "low_water", 6),
-                        new OptionData("سريعة النمو", "Fast growing", "fast_growing", 7),
-                        new OptionData("مزهرة", "Flowering", "flowering", 8)
-                )
-        );
-        
-        log.info("Default planting questions initialized successfully!");
-    }
-    
-    /**
-     * Helper method to create a question with its options
-     */
-    private void createQuestionWithOptionsInternal(
-            String textAr, String textEn, String key,
-            boolean required, boolean allowMultiple, int order,
-            List<OptionData> optionsData) {
-        
-        PlantingQuestion question = new PlantingQuestion();
-        question.setQuestionTextAr(textAr);
-        question.setQuestionTextEn(textEn);
-        question.setQuestionKey(key);
-        question.setIsRequired(required);
-        question.setAllowMultiple(allowMultiple);
-        question.setDisplayOrder(order);
-        question.setIsActive(true);
-        
-        for (OptionData data : optionsData) {
-            QuestionOption option = new QuestionOption();
-            option.setOptionTextAr(data.textAr);
-            option.setOptionTextEn(data.textEn);
-            option.setOptionKey(data.key);
-            option.setDisplayOrder(data.order);
-            option.setIsActive(true);
-            option.setQuestion(question);
-            question.getOptions().add(option);
-        }
-        
-        questionRepository.save(question);
-        log.debug("Created question: {} with {} options", key, optionsData.size());
-    }
-    
-    /**
-     * Helper record for option data
-     */
-    private record OptionData(String textAr, String textEn, String key, int order) {}
-    
-    @Override
-    @Transactional(readOnly = true)
-    public boolean hasDefaultQuestions() {
-        // Check if at least the 5 required questions exist
-        return questionRepository.findByQuestionKey("site").isPresent()
-                && questionRepository.findByQuestionKey("light").isPresent()
-                && questionRepository.findByQuestionKey("container").isPresent()
-                && questionRepository.findByQuestionKey("water").isPresent()
-                && questionRepository.findByQuestionKey("soil").isPresent();
-    }
+
     
     @Override
     @Transactional(readOnly = true)
