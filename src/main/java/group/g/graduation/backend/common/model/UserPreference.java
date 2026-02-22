@@ -3,6 +3,7 @@ package group.g.graduation.backend.common.model;
 import group.g.graduation.backend.Security.model.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -15,6 +16,7 @@ import java.time.LocalTime;
 @Entity
 @Table(name = "user_preferences")
 @Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserPreference {

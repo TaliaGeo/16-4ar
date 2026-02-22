@@ -1,5 +1,13 @@
 package group.g.graduation.backend.user.service;
 
+import java.time.LocalDate;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import group.g.graduation.backend.common.enums.Season;
 import group.g.graduation.backend.common.exception.ResourceNotFoundException;
 import group.g.graduation.backend.common.model.Month;
@@ -13,13 +21,6 @@ import group.g.graduation.backend.user.dto.home.MonthDetailResponse;
 import group.g.graduation.backend.user.dto.home.MonthlyCalendarResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDate;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Monthly Calendar Service - خدمة الكالندر الزراعية
@@ -67,26 +68,70 @@ public class MonthlyCalendarService {
      * عند الضغط على الشهر في الكالندر
      */
     public MonthDetailResponse getMonthDetail(Integer monthNumber) {
-        Month month = monthRepository.findByMonthNumberWithPlants(monthNumber)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Month", "monthNumber", monthNumber));
+        if (monthNumber < 1 || monthNumber > 12) {
+            throw new ResourceNotFoundException("Month", "monthNumber", monthNumber);
+        }
 
-        List<MonthPlant> monthPlants = month.getMonthPlants();
+        Optional<Month> monthOpt = monthRepository.findByMonthNumberWithPlants(monthNumber);
 
-        List<MonthDetailResponse.MonthPlantSuggestion> plantSuggestions = monthPlants.stream()
-                .map(this::toPlantSuggestion)
-                .collect(Collectors.toList());
+        if (monthOpt.isPresent()) {
+            Month month = monthOpt.get();
+            List<MonthPlant> monthPlants = month.getMonthPlants();
+
+            List<MonthDetailResponse.MonthPlantSuggestion> plantSuggestions = monthPlants.stream()
+                    .map(this::toPlantSuggestion)
+                    .collect(Collectors.toList());
+
+            return MonthDetailResponse.builder()
+                    .monthNumber(month.getMonthNumber())
+                    .monthNameAr(month.getNameAr())
+                    .monthNameEn(month.getNameEn())
+                    .seasonNameAr(getSeasonNameAr(month.getSeason()))
+                    .weatherDescriptionAr(month.getWeatherDescriptionAr())
+                    .regionAr("فلسطين - مناخ البحر المتوسط")
+                    .regionEn("Palestine - Mediterranean climate")
+                    .plantsCount(plantSuggestions.size())
+                    .plants(plantSuggestions)
+                    .build();
+        }
+
+        // Fallback: بيانات افتراضية إذا الشهر مش موجود بقاعدة البيانات
+        log.info("📅 Month {} not found in DB, using default data", monthNumber);
+        return buildDefaultMonthDetail(monthNumber);
+    }
+
+    /**
+     * بيانات شهر افتراضية عند عدم وجوده في قاعدة البيانات
+     */
+    private MonthDetailResponse buildDefaultMonthDetail(int monthNumber) {
+        String[][] monthData = {
+                {"يناير", "January", "WINTER", "بارد ماطر - مناسب لزراعة الخضروات الشتوية"},
+                {"فبراير", "February", "WINTER", "بارد - بداية التحضير للربيع"},
+                {"مارس", "March", "SPRING", "معتدل - موسم الزراعة الرئيسي"},
+                {"أبريل", "April", "SPRING", "ربيعي دافئ - مثالي للزراعة"},
+                {"مايو", "May", "SPRING", "دافئ - آخر فرصة لزراعة الربيع"},
+                {"يونيو", "June", "SUMMER", "حار - زراعة الخضروات الصيفية"},
+                {"يوليو", "July", "SUMMER", "حار جداً - العناية بالري"},
+                {"أغسطس", "August", "SUMMER", "حار جاف - حماية النباتات"},
+                {"سبتمبر", "September", "AUTUMN", "معتدل - بداية الزراعة الخريفية"},
+                {"أكتوبر", "October", "AUTUMN", "خريفي لطيف - زراعة الشتوية"},
+                {"نوفمبر", "November", "AUTUMN", "بارد لطيف - تحضير التربة"},
+                {"ديسمبر", "December", "WINTER", "بارد ماطر - زراعة البصل والثوم"}
+        };
+
+        String[] data = monthData[monthNumber - 1];
+        Season season = Season.valueOf(data[2]);
 
         return MonthDetailResponse.builder()
-                .monthNumber(month.getMonthNumber())
-                .monthNameAr(month.getNameAr())
-                .monthNameEn(month.getNameEn())
-                .seasonNameAr(getSeasonNameAr(month.getSeason()))
-                .weatherDescriptionAr(month.getWeatherDescriptionAr())
+                .monthNumber(monthNumber)
+                .monthNameAr(data[0])
+                .monthNameEn(data[1])
+                .seasonNameAr(getSeasonNameAr(season))
+                .weatherDescriptionAr(data[3])
                 .regionAr("فلسطين - مناخ البحر المتوسط")
                 .regionEn("Palestine - Mediterranean climate")
-                .plantsCount(plantSuggestions.size())
-                .plants(plantSuggestions)
+                .plantsCount(0)
+                .plants(List.of())
                 .build();
     }
 

@@ -153,3 +153,14 @@ rate-limit:
     anonymous-requests-per-minute: 30
     user-requests-per-minute: 60
     admin-requests-per-minute: 200
+
+# Weather API Configuration - OpenWeatherMap
+# سجل مجاناً في https://openweathermap.org/api واحصل على API key
+weather:
+  api:
+    key: 06139de8c6718510eee4c4dcb79fc070
+    url: https://api.openweathermap.org/data/2.5/weather
+  default:
+    city: Nablus
+    lat: 32.2211
+    lon: 35.2544

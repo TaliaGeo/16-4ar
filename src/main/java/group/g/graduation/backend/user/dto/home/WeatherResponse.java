@@ -64,4 +64,7 @@ public class WeatherResponse {
 
     @Schema(description = "اسم الفصل الحالي بالانجليزي", example = "Winter")
     private String seasonEn;
+
+    @Schema(description = "هل البيانات تقريبية (true) أم حقيقية من API (false)", example = "false")
+    private Boolean isEstimated;
 }

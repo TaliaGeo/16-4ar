@@ -1,17 +1,16 @@
 package group.g.graduation.backend.user.service;
 
-import group.g.graduation.backend.user.dto.home.WeatherResponse;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.Locale;
-import java.util.Map;
+import group.g.graduation.backend.user.dto.home.WeatherResponse;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Weather Service - خدمة الطقس
@@ -29,29 +28,43 @@ public class WeatherService {
     @Value("${weather.api.url:https://api.openweathermap.org/data/2.5/weather}")
     private String apiUrl;
 
-    @Value("${weather.default.city:Amman}")
+    @Value("${weather.default.city:Nablus}")
     private String defaultCity;
 
-    @Value("${weather.default.lat:31.9454}")
+    @Value("${weather.default.lat:32.2211}")
     private String defaultLat;
 
-    @Value("${weather.default.lon:35.9284}")
+    @Value("${weather.default.lon:35.2544}")
     private String defaultLon;
 
     /**
      * جلب حالة الطقس للموقع المحدد أو الموقع الافتراضي
+     * إذا المستخدم حدد موقعه يستخدم إحداثياته، وإلا يستخدم الإحداثيات الافتراضية
      */
     public WeatherResponse getWeather(String city, Double latitude, Double longitude) {
+        // إذا المستخدم ما حدد موقعه، نستخدم الإحداثيات الافتراضية
+        if (latitude == null || longitude == null) {
+            if (city == null || city.isEmpty()) {
+                city = defaultCity;
+                latitude = Double.parseDouble(defaultLat);
+                longitude = Double.parseDouble(defaultLon);
+                log.info("📍 No user location set, using default: {} ({}, {})", city, latitude, longitude);
+            }
+        }
+
         try {
             if (apiKey != null && !apiKey.isEmpty()) {
+                log.info("🌤️ Fetching real weather for: {} ({}, {})", city, latitude, longitude);
                 return fetchFromApi(city, latitude, longitude);
+            } else {
+                log.warn("⚠️ No weather API key configured! Set 'weather.api.key' in application.yml for real weather data.");
             }
         } catch (Exception e) {
             log.warn("⚠️ Failed to fetch weather from API: {}. Using fallback.", e.getMessage());
         }
 
         // Fallback: بيانات افتراضية بناءً على الموسم
-        return buildFallbackWeather(city);
+        return buildFallbackWeather(city != null ? city : defaultCity);
     }
 
     /**
@@ -115,11 +128,13 @@ public class WeatherService {
                 .windSpeed(wind != null ? toDouble(wind.get("speed")) : null)
                 .seasonAr(getCurrentSeasonAr())
                 .seasonEn(getCurrentSeasonEn())
+                .isEstimated(false)
                 .build();
     }
 
     /**
      * بيانات طقس افتراضية بناءً على الشهر الحالي
+     * تُستخدم فقط إذا API key مش متوفر أو فشل الاتصال
      */
     private WeatherResponse buildFallbackWeather(String city) {
         LocalDate today = LocalDate.now();
@@ -172,6 +187,7 @@ public class WeatherService {
                 .windSpeed(12.0)
                 .seasonAr(getCurrentSeasonAr())
                 .seasonEn(getCurrentSeasonEn())
+                .isEstimated(true)
                 .build();
     }
 
