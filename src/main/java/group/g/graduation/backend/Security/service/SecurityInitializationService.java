@@ -3,6 +3,7 @@ package group.g.graduation.backend.Security.service;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,6 +27,15 @@ public class SecurityInitializationService {
     private final RoleRepository roleRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${app.admin.email:admin@gharsih.ps}")
+    private String adminEmail;
+
+    @Value("${app.admin.password:${ADMIN_PASSWORD:admin123}}")
+    private String adminPassword;
+
+    @Value("${app.admin.name:System Administrator}")
+    private String adminName;
 
     @PostConstruct
     @Transactional
@@ -90,13 +100,11 @@ public class SecurityInitializationService {
     }
     
     private void createDefaultAdminUser(Role adminRole) {
-        String adminEmail = "admin@example.com";
-        
         if (!userRepository.existsByEmail(adminEmail)) {
             User admin = new User();
             admin.setEmail(adminEmail);
-            admin.setPassword(passwordEncoder.encode("admin123"));
-            admin.setFullName("System Administrator");
+            admin.setPassword(passwordEncoder.encode(adminPassword));
+            admin.setFullName(adminName);
             admin.setActive(true);
             
             Set<Role> roles = new HashSet<>();
@@ -104,7 +112,7 @@ public class SecurityInitializationService {
             admin.setRoles(roles);
             
             userRepository.save(admin);
-            log.info("Default admin user created: {} / admin123", adminEmail);
+            log.info("Default admin user created: {}", adminEmail);
         } else {
             log.info("Admin user already exists: {}", adminEmail);
         }

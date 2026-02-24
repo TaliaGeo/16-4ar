@@ -24,7 +24,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for UserMyCropsService - صفحة محاصيلي
- * Tests: Overview, PlantsByStatus, PlannedDetail, MarkPlanted, PlantedOverview,
+ * Tests: Overview, PlantsByStatus, PlannedDetail, PlantingSteps, MarkPlanted, PlantedOverview,
  *        PlantedTasks, PerformTaskAction (COMPLETE + 3 SNOOZE types),
  *        PlantedInfo, MarkHarvested
  */
@@ -245,6 +245,66 @@ class UserMyCropsServiceTest {
             when(userPlantRepository.findByIdWithPlant(200L)).thenReturn(Optional.of(otherPlant));
 
             assertThrows(SecurityException.class, () -> service.getPlannedPlantDetail(200L));
+        }
+    }
+
+    // =====================================================
+    // ===== 3.1 getPlantingSteps (صفحة منفصلة) =====
+    // =====================================================
+
+    @Test
+    @DisplayName("خطوات الزراعة - ترجع الخطوات والفيديو والمعلومات التقنية")
+    void getPlantingSteps_returnsStepsAndTechnicalInfo() {
+        try (MockedStatic<SecurityUtils> secUtils = mockStatic(SecurityUtils.class)) {
+            secUtils.when(SecurityUtils::getCurrentUserEmail).thenReturn(Optional.of("test@example.com"));
+            when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+            when(userPlantRepository.findByIdWithPlant(100L)).thenReturn(Optional.of(plannedUserPlant));
+            when(plantImageRepository.findByPlantIdOrderByDisplayOrderAsc(10L))
+                    .thenReturn(Collections.emptyList());
+
+            PlantingStepsResponse result = service.getPlantingSteps(100L);
+
+            assertEquals(100L, result.getUserPlantId());
+            assertEquals(10L, result.getPlantId());
+            assertEquals("نعناع", result.getPlantNameAr());
+            assertEquals("Mint", result.getPlantNameEn());
+            assertEquals("ازرع في تربة رطبة", result.getPlantingStepsAr());
+            assertEquals("Plant in moist soil", result.getPlantingStepsEn());
+            assertEquals(20, result.getSpacingCm());
+            assertEquals(7, result.getGerminationDays());
+            assertEquals(15, result.getMinTemp());
+            assertEquals(35, result.getMaxTemp());
+        }
+    }
+
+    @Test
+    @DisplayName("خطوات الزراعة - نبتة غير موجودة ترجع 404")
+    void getPlantingSteps_notFound_throwsException() {
+        try (MockedStatic<SecurityUtils> secUtils = mockStatic(SecurityUtils.class)) {
+            secUtils.when(SecurityUtils::getCurrentUserEmail).thenReturn(Optional.of("test@example.com"));
+            when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+            when(userPlantRepository.findByIdWithPlant(999L)).thenReturn(Optional.empty());
+
+            assertThrows(EntityNotFoundException.class, () -> service.getPlantingSteps(999L));
+        }
+    }
+
+    @Test
+    @DisplayName("خطوات الزراعة - نبتة ليست للمستخدم ترجع SecurityException")
+    void getPlantingSteps_notOwned_throwsSecurityException() {
+        try (MockedStatic<SecurityUtils> secUtils = mockStatic(SecurityUtils.class)) {
+            secUtils.when(SecurityUtils::getCurrentUserEmail).thenReturn(Optional.of("test@example.com"));
+            when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+
+            User otherUser = new User();
+            otherUser.setId(99L);
+            UserPlant otherPlant = new UserPlant();
+            otherPlant.setId(200L);
+            otherPlant.setUser(otherUser);
+            otherPlant.setPlant(testPlant);
+            when(userPlantRepository.findByIdWithPlant(200L)).thenReturn(Optional.of(otherPlant));
+
+            assertThrows(SecurityException.class, () -> service.getPlantingSteps(200L));
         }
     }
 

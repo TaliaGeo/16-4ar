@@ -69,9 +69,8 @@ public class OpenApiConfig {
                     1. سجل دخول عبر `/api/auth/login`
                     2. استخدم الـ Token في الـ Header: `Authorization: Bearer <token>`
                     
-                    ### حساب المشرف الافتراضي
-                    - **البريد**: admin@example.com
-                    - **كلمة المرور**: admin123
+                    ### المصادقة
+                    استخدم بيانات الدخول المقدمة من مدير النظام.
                     """)
                 .version("1.0.0")
                 .contact(apiContact())

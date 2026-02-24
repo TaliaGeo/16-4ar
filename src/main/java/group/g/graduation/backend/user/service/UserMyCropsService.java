@@ -106,7 +106,7 @@ public class UserMyCropsService {
     // =====================================================
 
     /**
-     * تفاصيل كاملة لنبتة مخطط لزراعتها
+     * تفاصيل كاملة لنبتة مخطط لزراعتها (بدون خطوات الزراعة - لها إندبوينت لوحدها)
      */
     @Transactional(readOnly = true)
     public PlannedPlantDetailResponse getPlannedPlantDetail(Long userPlantId) {
@@ -132,15 +132,48 @@ public class UserMyCropsService {
                 .soilInfoEn(plant.getSoilInfoEn())
                 .wateringInfoAr(plant.getWateringInfoAr())
                 .wateringInfoEn(plant.getWateringInfoEn())
-                .plantingStepsAr(plant.getPlantingStepsAr())
-                .plantingStepsEn(plant.getPlantingStepsEn())
-                .plantingVideoUrl(plant.getPlantingVideoUrl())
                 .careInfoAr(plant.getCareInfoAr())
                 .careInfoEn(plant.getCareInfoEn())
                 .difficultyLevel(plant.getDifficultyLevel() != null ? plant.getDifficultyLevel().name() : null)
                 .category(plant.getCategory() != null ? plant.getCategory().name() : null)
                 .wateringIntervalDays(plant.getWateringIntervalDays())
                 .daysToHarvest(plant.getDaysToHarvest())
+                .nickname(up.getNickname())
+                .build();
+    }
+
+    // =====================================================
+    // ===== 2.1 خطوات الزراعة (صفحة منفصلة) =====
+    // =====================================================
+
+    /**
+     * خطوات زراعة النبتة - تظهر بصفحة لوحدها
+     * يضغط المستخدم "ابدأ الزراعة" من تفاصيل المخططة → تفتح صفحة الخطوات
+     */
+    @Transactional(readOnly = true)
+    public PlantingStepsResponse getPlantingSteps(Long userPlantId) {
+        User user = getCurrentUser();
+        UserPlant up = findUserPlantOwned(userPlantId, user.getId());
+        Plant plant = up.getPlant();
+
+        String primaryImage = getPrimaryImageUrl(plant.getId(),
+                plantImageRepository.findByPlantIdOrderByDisplayOrderAsc(plant.getId())
+                        .stream().map(PlantImage::getImageUrl).collect(Collectors.toList()));
+
+        return PlantingStepsResponse.builder()
+                .userPlantId(up.getId())
+                .plantId(plant.getId())
+                .plantNameAr(plant.getNameAr())
+                .plantNameEn(plant.getNameEn())
+                .imageUrl(primaryImage)
+                .plantingStepsAr(plant.getPlantingStepsAr())
+                .plantingStepsEn(plant.getPlantingStepsEn())
+                .plantingVideoUrl(plant.getPlantingVideoUrl())
+                .difficultyLevel(plant.getDifficultyLevel() != null ? plant.getDifficultyLevel().name() : null)
+                .spacingCm(plant.getSpacingCm())
+                .germinationDays(plant.getGerminationDays())
+                .minTemp(plant.getMinTemp())
+                .maxTemp(plant.getMaxTemp())
                 .nickname(up.getNickname())
                 .build();
     }

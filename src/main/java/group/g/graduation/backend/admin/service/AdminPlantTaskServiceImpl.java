@@ -23,7 +23,6 @@ import group.g.graduation.backend.common.repository.TaskTypeRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 /**
  * Implementation of AdminPlantTaskService
  * تنفيذ خدمة إدارة صور النباتات وأنواع المهام ومهام النباتات للأدمن

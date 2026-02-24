@@ -84,6 +84,10 @@ management:
       show-details: always
       
 app:
+  admin:
+    email: ${ADMIN_EMAIL:admin@gharsih.ps}
+    password: ${ADMIN_PASSWORD:admin123}
+    name: ${ADMIN_NAME:System Administrator}
   jwt:
     # Use a properly long secret key (at least 256 bits / 32 characters)
     secret: mySecretKeyThatShouldBeAtLeast256BitsLongForHMACAlgorithmToWorkProperly

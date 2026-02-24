@@ -32,6 +32,7 @@ import java.util.List;
  * - GET  /planted           → كل المزروعة
  * - GET  /harvested         → كل المحصودة
  * - GET  /planned/{id}      → تفاصيل نبتة مخططة
+ * - GET  /{id}/planting-steps → خطوات الزراعة (صفحة منفصلة)
  * - POST /mark-planted      → نقل مخطط → مزروع
  * - POST /{id}/harvest      → نقل مزروع → محصود
  * - GET  /{id}/overview     → نظرة عامة على مزروعة (تبويب 1)
@@ -101,7 +102,7 @@ public class UserMyCropsController {
 
     @GetMapping("/planned/{userPlantId}")
     @Operation(summary = "تفاصيل نبتة مخططة",
-            description = "معلومات كاملة عن نبتة مخططة: ضوء، تربة، ري، خطوات زراعة، فيديو")
+            description = "معلومات كاملة عن نبتة مخططة: ضوء، تربة، ري، عناية (بدون خطوات الزراعة)")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "تم جلب التفاصيل"),
             @ApiResponse(responseCode = "404", description = "النبتة غير موجودة")
@@ -110,6 +111,19 @@ public class UserMyCropsController {
             @Parameter(description = "معرّف نبتة المستخدم") @PathVariable Long userPlantId) {
         log.info("REST: جلب تفاصيل نبتة مخططة - ID: {}", userPlantId);
         return ResponseEntity.ok(myCropsService.getPlannedPlantDetail(userPlantId));
+    }
+
+    @GetMapping("/{userPlantId}/planting-steps")
+    @Operation(summary = "خطوات الزراعة",
+            description = "صفحة منفصلة: خطوات زراعة النبتة، فيديو، معلومات تقنية (حرارة، مسافات، إنبات)")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "تم جلب خطوات الزراعة"),
+            @ApiResponse(responseCode = "404", description = "النبتة غير موجودة")
+    })
+    public ResponseEntity<PlantingStepsResponse> getPlantingSteps(
+            @Parameter(description = "معرّف نبتة المستخدم") @PathVariable Long userPlantId) {
+        log.info("REST: جلب خطوات الزراعة - ID: {}", userPlantId);
+        return ResponseEntity.ok(myCropsService.getPlantingSteps(userPlantId));
     }
 
     // =====================================================
