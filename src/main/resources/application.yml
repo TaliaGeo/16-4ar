@@ -7,9 +7,9 @@ spring:
   
   # Database configuration - PostgreSQL
   datasource:
-    url: jdbc:postgresql://localhost:5432/graduation_db
-    username: postgres
-    password: 12345
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/graduation_db}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:12345}
     driver-class-name: org.postgresql.Driver
   
   # JPA configuration
@@ -24,10 +24,10 @@ spring:
 
   # Email Configuration - Gmail SMTP
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: gharsihapp@gmail.com
-    password: qjfygywcyrwpxxhv
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:gharsihapp@gmail.com}
+    password: ${MAIL_PASSWORD:qjfygywcyrwpxxhv}
     properties:
       mail:
         smtp:
@@ -90,7 +90,7 @@ app:
     name: ${ADMIN_NAME:System Administrator}
   jwt:
     # Use a properly long secret key (at least 256 bits / 32 characters)
-    secret: mySecretKeyThatShouldBeAtLeast256BitsLongForHMACAlgorithmToWorkProperly
+    secret: ${JWT_SECRET:mySecretKeyThatShouldBeAtLeast256BitsLongForHMACAlgorithmToWorkProperly}
     expiration-ms: 7776000000  # 90 days (90 * 24 * 60 * 60 * 1000)
     refresh-token:
       expiration-ms: 7776000000  # 90 days
@@ -108,9 +108,9 @@ app:
 
 # Email Settings
 email:
-  from: gharsihapp@gmail.com
-  from-name: غرسي - Gharsih App
-  support-email: gharsihapp@gmail.com
+  from: ${EMAIL_FROM:gharsihapp@gmail.com}
+  from-name: ${EMAIL_FROM_NAME:غرسي - Gharsih App}
+  support-email: ${EMAIL_SUPPORT:gharsihapp@gmail.com}
 
 logging:
   level:
@@ -162,9 +162,15 @@ rate-limit:
 # سجل مجاناً في https://openweathermap.org/api واحصل على API key
 weather:
   api:
-    key: 06139de8c6718510eee4c4dcb79fc070
-    url: https://api.openweathermap.org/data/2.5/weather
+    key: ${WEATHER_API_KEY:06139de8c6718510eee4c4dcb79fc070}
+    url: ${WEATHER_API_URL:https://api.openweathermap.org/data/2.5/weather}
   default:
     city: Nablus
     lat: 32.2211
     lon: 35.2544
+
+# Firebase Configuration (FCM Push Notifications)
+# ضع ملف firebase-service-account.json في src/main/resources/
+# أو حدد المسار عبر متغير FIREBASE_CONFIG_PATH
+firebase:
+  config-path: ${FIREBASE_CONFIG_PATH:}

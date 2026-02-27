@@ -43,4 +43,24 @@ public interface UserPlantTaskRepository extends JpaRepository<UserPlantTask, Lo
     // عدد المهام المتأخرة لمستخدم
     @Query("SELECT COUNT(upt) FROM UserPlantTask upt JOIN upt.userPlant up WHERE up.user.id = :userId AND upt.dueDate < :date AND upt.status = :status")
     long countOverdueTasksForUser(@Param("userId") Long userId, @Param("date") LocalDate date, @Param("status") TaskStatus status);
+
+    // ═══ Scheduler queries ═══
+
+    // جلب كل المهام المستحقة اليوم (لجميع المستخدمين) مع تفاصيل النبتة واليوزر
+    @Query("SELECT upt FROM UserPlantTask upt " +
+           "JOIN FETCH upt.taskType " +
+           "JOIN FETCH upt.userPlant up " +
+           "JOIN FETCH up.user " +
+           "JOIN FETCH up.plant " +
+           "WHERE upt.dueDate = :date AND upt.status = :status")
+    List<UserPlantTask> findAllDueTasksForDate(@Param("date") LocalDate date, @Param("status") TaskStatus status);
+
+    // جلب كل المهام المتأخرة (لجميع المستخدمين)
+    @Query("SELECT upt FROM UserPlantTask upt " +
+           "JOIN FETCH upt.taskType " +
+           "JOIN FETCH upt.userPlant up " +
+           "JOIN FETCH up.user " +
+           "JOIN FETCH up.plant " +
+           "WHERE upt.dueDate < :date AND upt.status = :status")
+    List<UserPlantTask> findAllOverdueTasks(@Param("date") LocalDate date, @Param("status") TaskStatus status);
 }

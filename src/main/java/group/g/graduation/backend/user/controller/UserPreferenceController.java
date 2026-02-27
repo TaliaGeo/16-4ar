@@ -1,6 +1,8 @@
 package group.g.graduation.backend.user.controller;
 
 import group.g.graduation.backend.user.dto.preference.LocationResponse;
+import group.g.graduation.backend.user.dto.preference.NotificationSettingsRequest;
+import group.g.graduation.backend.user.dto.preference.NotificationSettingsResponse;
 import group.g.graduation.backend.user.dto.preference.PalestineCityInfo;
 import group.g.graduation.backend.user.dto.preference.SetLocationRequest;
 import group.g.graduation.backend.user.service.UserPreferenceService;
@@ -97,5 +99,63 @@ public class UserPreferenceController {
         }
 
         return ResponseEntity.ok(location);
+    }
+
+    // ===== 4. إعدادات الإشعارات =====
+
+    @PutMapping("/notifications")
+    @Operation(
+            summary = "تحديث إعدادات الإشعارات",
+            description = "تعديل إعدادات الإشعارات: تفعيل/تعطيل، Push، أوقات التذكير، اللغة"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "تم تحديث الإعدادات"),
+            @ApiResponse(responseCode = "401", description = "غير مصرح")
+    })
+    public ResponseEntity<NotificationSettingsResponse> updateNotificationSettings(
+            @Valid @RequestBody NotificationSettingsRequest request) {
+        log.info("⚙️ PUT /api/user/preferences/notifications");
+        return ResponseEntity.ok(userPreferenceService.updateNotificationSettings(request));
+    }
+
+    @GetMapping("/notifications")
+    @Operation(
+            summary = "جلب إعدادات الإشعارات الحالية",
+            description = "يعرض حالة الإشعارات وأوقات التذكير واللغة المفضلة"
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "تم جلب الإعدادات"),
+            @ApiResponse(responseCode = "401", description = "غير مصرح")
+    })
+    public ResponseEntity<NotificationSettingsResponse> getNotificationSettings() {
+        log.info("⚙️ GET /api/user/preferences/notifications");
+        return ResponseEntity.ok(userPreferenceService.getNotificationSettings());
+    }
+
+    // ===== 5. تحديث FCM Token =====
+
+    @PostMapping("/fcm-token")
+    @Operation(
+            summary = "تحديث FCM Token",
+            description = "التطبيق يرسل الـ Firebase token عند كل فتح. يُستخدم لإرسال Push Notifications."
+    )
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "تم تحديث التوكن"),
+            @ApiResponse(responseCode = "401", description = "غير مصرح")
+    })
+    public ResponseEntity<Map<String, String>> updateFcmToken(@RequestBody Map<String, String> body) {
+        String token = body.get("fcmToken");
+        if (token == null || token.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "fcmToken is required",
+                    "errorAr", "الـ FCM Token مطلوب"
+            ));
+        }
+        log.info("📱 POST /api/user/preferences/fcm-token");
+        userPreferenceService.updateFcmToken(token);
+        return ResponseEntity.ok(Map.of(
+                "message", "FCM token updated successfully",
+                "messageAr", "تم تحديث التوكن بنجاح"
+        ));
     }
 }

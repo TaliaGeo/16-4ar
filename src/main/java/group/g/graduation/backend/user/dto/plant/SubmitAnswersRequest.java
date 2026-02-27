@@ -2,6 +2,7 @@ package group.g.graduation.backend.user.dto.plant;
 
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -12,6 +13,7 @@ import lombok.NoArgsConstructor;
 /**
  * SubmitAnswersRequest - طلب تقديم إجابات أسئلة إضافة المحصول
  * اليوزر بيبعث إجاباته على الأسئلة الإجبارية والاختيارية
+ * مع إمكانية إرسال موقع GPS الحالي لاقتراحات أذكى
  */
 @Data
 @Builder
@@ -21,6 +23,12 @@ public class SubmitAnswersRequest {
 
     @NotEmpty(message = "يجب الإجابة على الأسئلة الإجبارية على الأقل")
     private List<QuestionAnswer> answers;
+
+    @Schema(description = "خط العرض من GPS (اختياري – لاقتراحات حسب الطقس والموقع)", example = "32.2211")
+    private Double latitude;
+
+    @Schema(description = "خط الطول من GPS (اختياري – لاقتراحات حسب الطقس والموقع)", example = "35.2544")
+    private Double longitude;
 
     @Data
     @Builder

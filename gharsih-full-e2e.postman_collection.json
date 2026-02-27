@@ -1,0 +1,1758 @@
+{
+	"info": {
+		"_postman_id": "gharsih-e2e-full-test",
+		"name": "Gharsih Full E2E Tests",
+		"description": "Comprehensive end-to-end test collection for Gharsih plant recommendation backend.\n\nRun in order: Auth(Admin) → Setup(Questions) → Setup(Plants) → Setup(Suitability) → Auth(User) → Recommendations → My Crops → Edge Cases.\n\nAll IDs are dynamically extracted and stored in collection variables.\nAll bodies with dynamic IDs are built in pre-request scripts to avoid invalid JSON.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{ "key": "baseUrl", "value": "http://localhost:8081", "type": "string" },
+		{ "key": "adminToken", "value": "", "type": "string" },
+		{ "key": "userToken", "value": "", "type": "string" },
+		{ "key": "sessionId", "value": "", "type": "string" },
+		{ "key": "sessionId_s1", "value": "", "type": "string" },
+		{ "key": "sessionId_s2", "value": "", "type": "string" },
+		{ "key": "sessionId_s3", "value": "", "type": "string" },
+		{ "key": "sessionId_s4", "value": "", "type": "string" },
+		{ "key": "sessionId_s5", "value": "", "type": "string" },
+		{ "key": "sessionId_s6", "value": "", "type": "string" },
+		{ "key": "userPlantId", "value": "", "type": "string" },
+		{ "key": "topPlantId", "value": "", "type": "string" },
+		{ "key": "plantId_spearmint", "value": "", "type": "string" },
+		{ "key": "plantId_basil", "value": "", "type": "string" },
+		{ "key": "plantId_sage", "value": "", "type": "string" },
+		{ "key": "plantId_thyme", "value": "", "type": "string" },
+		{ "key": "plantId_chamomile", "value": "", "type": "string" },
+		{ "key": "plantId_rosemary", "value": "", "type": "string" },
+		{ "key": "questionId_site", "value": "", "type": "string" },
+		{ "key": "questionId_light", "value": "", "type": "string" },
+		{ "key": "questionId_container", "value": "", "type": "string" },
+		{ "key": "questionId_water", "value": "", "type": "string" },
+		{ "key": "questionId_soil", "value": "", "type": "string" },
+		{ "key": "questionId_drainage", "value": "", "type": "string" },
+		{ "key": "questionId_holes", "value": "", "type": "string" },
+		{ "key": "questionId_wind", "value": "", "type": "string" },
+		{ "key": "questionId_growlight", "value": "", "type": "string" },
+		{ "key": "questionId_prefs", "value": "", "type": "string" },
+		{ "key": "optionId_site_indoor", "value": "", "type": "string" },
+		{ "key": "optionId_site_balcony", "value": "", "type": "string" },
+		{ "key": "optionId_site_rooftop", "value": "", "type": "string" },
+		{ "key": "optionId_site_garden", "value": "", "type": "string" },
+		{ "key": "optionId_site_unknown", "value": "", "type": "string" },
+		{ "key": "optionId_light_full_sun", "value": "", "type": "string" },
+		{ "key": "optionId_light_partial_sun", "value": "", "type": "string" },
+		{ "key": "optionId_light_bright_indirect", "value": "", "type": "string" },
+		{ "key": "optionId_light_low_light", "value": "", "type": "string" },
+		{ "key": "optionId_light_unknown", "value": "", "type": "string" },
+		{ "key": "optionId_container_small_pot", "value": "", "type": "string" },
+		{ "key": "optionId_container_medium_pot", "value": "", "type": "string" },
+		{ "key": "optionId_container_large_pot", "value": "", "type": "string" },
+		{ "key": "optionId_container_bed_or_ground", "value": "", "type": "string" },
+		{ "key": "optionId_container_unknown", "value": "", "type": "string" },
+		{ "key": "optionId_water_daily", "value": "", "type": "string" },
+		{ "key": "optionId_water_every_2_3", "value": "", "type": "string" },
+		{ "key": "optionId_water_weekly", "value": "", "type": "string" },
+		{ "key": "optionId_water_irregular", "value": "", "type": "string" },
+		{ "key": "optionId_water_unknown", "value": "", "type": "string" },
+		{ "key": "optionId_soil_potting_mix", "value": "", "type": "string" },
+		{ "key": "optionId_soil_garden_soil", "value": "", "type": "string" },
+		{ "key": "optionId_soil_sandy", "value": "", "type": "string" },
+		{ "key": "optionId_soil_clay", "value": "", "type": "string" },
+		{ "key": "optionId_soil_compost_mix", "value": "", "type": "string" },
+		{ "key": "optionId_soil_unknown", "value": "", "type": "string" },
+		{ "key": "optionId_drainage_good", "value": "", "type": "string" },
+		{ "key": "optionId_drainage_average", "value": "", "type": "string" },
+		{ "key": "optionId_drainage_poor", "value": "", "type": "string" },
+		{ "key": "optionId_drainage_unknown", "value": "", "type": "string" },
+		{ "key": "optionId_holes_yes", "value": "", "type": "string" },
+		{ "key": "optionId_holes_partial", "value": "", "type": "string" },
+		{ "key": "optionId_holes_no", "value": "", "type": "string" },
+		{ "key": "optionId_holes_ground", "value": "", "type": "string" },
+		{ "key": "optionId_wind_sheltered", "value": "", "type": "string" },
+		{ "key": "optionId_wind_light", "value": "", "type": "string" },
+		{ "key": "optionId_wind_strong", "value": "", "type": "string" },
+		{ "key": "optionId_wind_unknown", "value": "", "type": "string" },
+		{ "key": "optionId_growlight_yes_led", "value": "", "type": "string" },
+		{ "key": "optionId_growlight_yes_regular", "value": "", "type": "string" },
+		{ "key": "optionId_growlight_no", "value": "", "type": "string" },
+		{ "key": "optionId_growlight_will_buy", "value": "", "type": "string" },
+		{ "key": "optionId_prefs_beginner", "value": "", "type": "string" },
+		{ "key": "optionId_prefs_tea", "value": "", "type": "string" },
+		{ "key": "optionId_prefs_cooking", "value": "", "type": "string" },
+		{ "key": "optionId_prefs_aromatic", "value": "", "type": "string" },
+		{ "key": "optionId_prefs_medicinal", "value": "", "type": "string" },
+		{ "key": "optionId_prefs_low_water", "value": "", "type": "string" },
+		{ "key": "optionId_prefs_fast_growing", "value": "", "type": "string" },
+		{ "key": "optionId_prefs_flowering", "value": "", "type": "string" }
+	],
+	"item": [
+		{
+			"name": "Auth (Admin)",
+			"item": [
+				{
+					"name": "Admin Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Admin login returns 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json();",
+									"",
+									"pm.test('Response contains accessToken', function () {",
+									"    pm.expect(jsonData.accessToken).to.be.a('string');",
+									"    pm.expect(jsonData.accessToken).to.not.be.empty;",
+									"});",
+									"",
+									"pm.test('Role is ADMIN', function () {",
+									"    pm.expect(jsonData.roles).to.include('ADMIN');",
+									"});",
+									"",
+									"pm.collectionVariables.set('adminToken', jsonData.accessToken);",
+									"console.log('Admin token stored successfully');"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"admin@gharsih.ps\",\n  \"password\": \"admin123\"\n}"
+						},
+						"url": "{{baseUrl}}/api/auth/login"
+					}
+				}
+			]
+		},
+		{
+			"name": "Setup (Questions/Options)",
+			"item": [
+				{
+					"name": "GET All Questions With Options",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var data = pm.response.json();",
+									"",
+									"pm.test('At least 6 questions exist', function () {",
+									"    pm.expect(data.length).to.be.at.least(6);",
+									"});",
+									"",
+									"// Map every question and option into collection variables",
+									"var allOptionKeys = [];",
+									"data.forEach(function (q) {",
+									"    var qKey = q.questionKey;",
+									"    pm.collectionVariables.set('questionId_' + qKey, String(q.id));",
+									"    console.log('questionId_' + qKey + ' = ' + q.id);",
+									"",
+									"    if (q.options && q.options.length > 0) {",
+									"        q.options.forEach(function (o) {",
+									"            var varName = 'optionId_' + qKey + '_' + o.optionKey;",
+									"            pm.collectionVariables.set(varName, String(o.id));",
+									"            allOptionKeys.push(varName + '=' + o.id);",
+									"            console.log(varName + ' = ' + o.id);",
+									"        });",
+									"    }",
+									"});",
+									"",
+									"pm.test('All required question keys mapped', function () {",
+									"    var keys = ['site','light','container','water','soil','drainage'];",
+									"    keys.forEach(function (k) {",
+									"        pm.expect(pm.collectionVariables.get('questionId_' + k), 'questionId_' + k + ' missing').to.not.be.empty;",
+									"    });",
+									"});",
+									"",
+									"// ─── FIX #3: Validate critical option IDs are mapped ───",
+									"var criticalOptions = [",
+									"    'optionId_site_balcony', 'optionId_site_indoor', 'optionId_site_garden',",
+									"    'optionId_site_rooftop', 'optionId_site_unknown',",
+									"    'optionId_light_full_sun', 'optionId_light_partial_sun',",
+									"    'optionId_light_low_light', 'optionId_light_unknown',",
+									"    'optionId_container_small_pot', 'optionId_container_medium_pot',",
+									"    'optionId_container_large_pot', 'optionId_container_bed_or_ground',",
+									"    'optionId_container_unknown',",
+									"    'optionId_water_daily', 'optionId_water_every_2_3',",
+									"    'optionId_water_weekly', 'optionId_water_irregular',",
+									"    'optionId_water_unknown',",
+									"    'optionId_soil_potting_mix', 'optionId_soil_garden_soil',",
+									"    'optionId_soil_sandy', 'optionId_soil_unknown',",
+									"    'optionId_drainage_good', 'optionId_drainage_average',",
+									"    'optionId_drainage_poor', 'optionId_drainage_unknown',",
+									"    'optionId_prefs_cooking', 'optionId_prefs_tea',",
+									"    'optionId_prefs_beginner', 'optionId_prefs_aromatic',",
+									"    'optionId_prefs_medicinal', 'optionId_prefs_low_water',",
+									"    'optionId_prefs_fast_growing', 'optionId_prefs_flowering'",
+									"];",
+									"",
+									"var missing = [];",
+									"criticalOptions.forEach(function (key) {",
+									"    var val = pm.collectionVariables.get(key);",
+									"    if (!val || val === '') {",
+									"        missing.push(key);",
+									"    }",
+									"});",
+									"",
+									"if (missing.length > 0) {",
+									"    console.error('═══ MISSING OPTION MAPPINGS ═══');",
+									"    console.error('Missing keys: ' + missing.join(', '));",
+									"    console.error('═══ ALL FOUND OPTION KEYS (for mismatch debugging) ═══');",
+									"    allOptionKeys.forEach(function (k) { console.error('  ' + k); });",
+									"    console.error('═══ Check if optionKey values in DB match expected names ═══');",
+									"}",
+									"",
+									"pm.test('All critical option IDs mapped (none empty)', function () {",
+									"    pm.expect(missing, 'Unmapped options: ' + missing.join(', ')).to.have.lengthOf(0);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"url": "{{baseUrl}}/api/admin/planting-questions/with-options"
+					}
+				}
+			]
+		},
+		{
+			"name": "Setup (Plants)",
+			"item": [
+				{
+					"name": "Create Spearmint",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var code = pm.response.code;",
+									"pm.test('Created or already exists (201|409)', function () {",
+									"    pm.expect([201,409]).to.include(code);",
+									"});",
+									"if (code === 201) {",
+									"    var d = pm.response.json();",
+									"    pm.collectionVariables.set('plantId_spearmint', String(d.id));",
+									"    console.log('plantId_spearmint = ' + d.id);",
+									"} else {",
+									"    console.log('Spearmint already exists – GET plants will map ID');",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nameAr\": \"نعناع\",\n  \"nameEn\": \"Spearmint\",\n  \"nameScientific\": \"Mentha spicata\",\n  \"shortDescriptionAr\": \"نبات عطري سهل الزراعة\",\n  \"shortDescriptionEn\": \"Easy aromatic herb\",\n  \"lightInfoAr\": \"شمس جزئية\",\n  \"lightInfoEn\": \"Partial sun\",\n  \"soilInfoAr\": \"تربة رطبة غنية\",\n  \"soilInfoEn\": \"Moist rich soil\",\n  \"wateringInfoAr\": \"ري منتظم\",\n  \"wateringInfoEn\": \"Regular watering\",\n  \"wateringIntervalDays\": 2,\n  \"careInfoAr\": \"قص منتظم\",\n  \"careInfoEn\": \"Regular trimming\",\n  \"harvestInfoAr\": \"اقطف الأوراق حسب الحاجة\",\n  \"harvestInfoEn\": \"Pick leaves as needed\",\n  \"usesInfoAr\": \"شاي، طبخ، عطر\",\n  \"usesInfoEn\": \"Tea, cooking, fragrance\",\n  \"spacingCm\": 30,\n  \"daysToHarvest\": 30,\n  \"germinationDays\": 14,\n  \"minTemp\": 10,\n  \"maxTemp\": 30,\n  \"difficultyLevel\": \"EASY\",\n  \"category\": \"HERBS\"\n}"
+						},
+						"url": "{{baseUrl}}/api/admin/plants"
+					}
+				},
+				{
+					"name": "Create Sweet Basil",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var code = pm.response.code;",
+									"pm.test('Created or exists (201|409)', function () { pm.expect([201,409]).to.include(code); });",
+									"if (code === 201) { pm.collectionVariables.set('plantId_basil', String(pm.response.json().id)); }"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nameAr\": \"ريحان\",\n  \"nameEn\": \"Sweet basil\",\n  \"nameScientific\": \"Ocimum basilicum\",\n  \"shortDescriptionAr\": \"عشبة عطرية للطبخ\",\n  \"shortDescriptionEn\": \"Aromatic cooking herb\",\n  \"lightInfoAr\": \"شمس مباشرة\",\n  \"lightInfoEn\": \"Full sun\",\n  \"soilInfoAr\": \"تربة رطبة جيدة التصريف\",\n  \"soilInfoEn\": \"Moist well-drained\",\n  \"wateringInfoAr\": \"ري منتظم\",\n  \"wateringInfoEn\": \"Regular watering\",\n  \"wateringIntervalDays\": 2,\n  \"careInfoAr\": \"قص الأزهار\",\n  \"careInfoEn\": \"Pinch flowers for more leaves\",\n  \"harvestInfoAr\": \"اقطف الأوراق\",\n  \"harvestInfoEn\": \"Pick leaves regularly\",\n  \"usesInfoAr\": \"طبخ، سلطات، صلصات\",\n  \"usesInfoEn\": \"Cooking, salads, sauces\",\n  \"spacingCm\": 25,\n  \"daysToHarvest\": 28,\n  \"germinationDays\": 7,\n  \"minTemp\": 15,\n  \"maxTemp\": 35,\n  \"difficultyLevel\": \"EASY\",\n  \"category\": \"HERBS\"\n}"
+						},
+						"url": "{{baseUrl}}/api/admin/plants"
+					}
+				},
+				{
+					"name": "Create Sage",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var code = pm.response.code;",
+									"pm.test('Created or exists (201|409)', function () { pm.expect([201,409]).to.include(code); });",
+									"if (code === 201) { pm.collectionVariables.set('plantId_sage', String(pm.response.json().id)); }"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nameAr\": \"ميرمية\",\n  \"nameEn\": \"Sage\",\n  \"nameScientific\": \"Salvia officinalis\",\n  \"shortDescriptionAr\": \"عشبة طبية مقاومة للجفاف\",\n  \"shortDescriptionEn\": \"Drought-resistant medicinal herb\",\n  \"lightInfoAr\": \"شمس مباشرة\",\n  \"lightInfoEn\": \"Full sun\",\n  \"soilInfoAr\": \"تربة رملية جيدة التصريف\",\n  \"soilInfoEn\": \"Sandy well-drained soil\",\n  \"wateringInfoAr\": \"ري خفيف\",\n  \"wateringInfoEn\": \"Light watering\",\n  \"wateringIntervalDays\": 7,\n  \"careInfoAr\": \"قص بعد الإزهار\",\n  \"careInfoEn\": \"Prune after flowering\",\n  \"harvestInfoAr\": \"اقطف الأوراق قبل الإزهار\",\n  \"harvestInfoEn\": \"Pick leaves before flowering\",\n  \"usesInfoAr\": \"شاي، طبخ، طب شعبي\",\n  \"usesInfoEn\": \"Tea, cooking, traditional medicine\",\n  \"spacingCm\": 60,\n  \"daysToHarvest\": 75,\n  \"germinationDays\": 21,\n  \"minTemp\": 5,\n  \"maxTemp\": 30,\n  \"difficultyLevel\": \"EASY\",\n  \"category\": \"MEDICINAL_HERBS\"\n}"
+						},
+						"url": "{{baseUrl}}/api/admin/plants"
+					}
+				},
+				{
+					"name": "Create Syrian Thyme",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var code = pm.response.code;",
+									"pm.test('Created or exists (201|409)', function () { pm.expect([201,409]).to.include(code); });",
+									"if (code === 201) { pm.collectionVariables.set('plantId_thyme', String(pm.response.json().id)); }"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nameAr\": \"الزعتر البلدي\",\n  \"nameEn\": \"Syrian thyme\",\n  \"nameScientific\": \"Thymus syriacus\",\n  \"shortDescriptionAr\": \"عشبة عطرية تقليدية\",\n  \"shortDescriptionEn\": \"Traditional aromatic herb\",\n  \"lightInfoAr\": \"شمس مباشرة\",\n  \"lightInfoEn\": \"Direct sunlight\",\n  \"soilInfoAr\": \"رملية خفيفة\",\n  \"soilInfoEn\": \"Light sandy soil\",\n  \"wateringInfoAr\": \"ري خفيف\",\n  \"wateringInfoEn\": \"Light watering\",\n  \"wateringIntervalDays\": 10,\n  \"careInfoAr\": \"قص بعد الإزهار\",\n  \"careInfoEn\": \"Trim after flowering\",\n  \"harvestInfoAr\": \"اقطف الأغصان العليا\",\n  \"harvestInfoEn\": \"Cut top branches\",\n  \"usesInfoAr\": \"زعتر وزيت، شاي\",\n  \"usesInfoEn\": \"Za'atar blend, tea\",\n  \"spacingCm\": 76,\n  \"daysToHarvest\": 30,\n  \"germinationDays\": 21,\n  \"minTemp\": 15,\n  \"maxTemp\": 25,\n  \"difficultyLevel\": \"EASY\",\n  \"category\": \"AROMATIC_HERBS\"\n}"
+						},
+						"url": "{{baseUrl}}/api/admin/plants"
+					}
+				},
+				{
+					"name": "Create German Chamomile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var code = pm.response.code;",
+									"pm.test('Created or exists (201|409)', function () { pm.expect([201,409]).to.include(code); });",
+									"if (code === 201) { pm.collectionVariables.set('plantId_chamomile', String(pm.response.json().id)); }"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nameAr\": \"بابونج ألماني\",\n  \"nameEn\": \"German chamomile\",\n  \"nameScientific\": \"Matricaria chamomilla\",\n  \"shortDescriptionAr\": \"عشبة طبية للشاي\",\n  \"shortDescriptionEn\": \"Medicinal tea herb\",\n  \"lightInfoAr\": \"شمس مباشرة أو جزئية\",\n  \"lightInfoEn\": \"Full sun to partial\",\n  \"soilInfoAr\": \"تربة خفيفة\",\n  \"soilInfoEn\": \"Light well-drained soil\",\n  \"wateringInfoAr\": \"ري معتدل\",\n  \"wateringInfoEn\": \"Moderate watering\",\n  \"wateringIntervalDays\": 3,\n  \"careInfoAr\": \"إزالة الأعشاب الضارة\",\n  \"careInfoEn\": \"Remove weeds\",\n  \"harvestInfoAr\": \"اقطف الأزهار عند التفتح\",\n  \"harvestInfoEn\": \"Pick flowers when fully open\",\n  \"usesInfoAr\": \"شاي بابونج، زيوت عطرية\",\n  \"usesInfoEn\": \"Chamomile tea, essential oils\",\n  \"spacingCm\": 20,\n  \"daysToHarvest\": 60,\n  \"germinationDays\": 14,\n  \"minTemp\": 5,\n  \"maxTemp\": 30,\n  \"difficultyLevel\": \"MEDIUM\",\n  \"category\": \"MEDICINAL_HERBS\"\n}"
+						},
+						"url": "{{baseUrl}}/api/admin/plants"
+					}
+				},
+				{
+					"name": "Create Rosemary",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var code = pm.response.code;",
+									"pm.test('Created or exists (201|409)', function () { pm.expect([201,409]).to.include(code); });",
+									"if (code === 201) { pm.collectionVariables.set('plantId_rosemary', String(pm.response.json().id)); }"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nameAr\": \"إكليل الجبل\",\n  \"nameEn\": \"Rosemary\",\n  \"nameScientific\": \"Salvia rosmarinus\",\n  \"shortDescriptionAr\": \"شجيرة عطرية مقاومة للجفاف\",\n  \"shortDescriptionEn\": \"Drought-resistant aromatic shrub\",\n  \"lightInfoAr\": \"شمس مباشرة\",\n  \"lightInfoEn\": \"Full direct sun\",\n  \"soilInfoAr\": \"تربة رملية جافة\",\n  \"soilInfoEn\": \"Sandy dry soil\",\n  \"wateringInfoAr\": \"ري قليل جدا\",\n  \"wateringInfoEn\": \"Very little watering\",\n  \"wateringIntervalDays\": 10,\n  \"careInfoAr\": \"تقليم سنوي\",\n  \"careInfoEn\": \"Annual pruning\",\n  \"harvestInfoAr\": \"قص الأغصان\",\n  \"harvestInfoEn\": \"Cut branches as needed\",\n  \"usesInfoAr\": \"طبخ، شاي، عطر\",\n  \"usesInfoEn\": \"Cooking, tea, fragrance\",\n  \"spacingCm\": 90,\n  \"daysToHarvest\": 90,\n  \"germinationDays\": 21,\n  \"minTemp\": 5,\n  \"maxTemp\": 35,\n  \"difficultyLevel\": \"EASY\",\n  \"category\": \"AROMATIC_HERBS\"\n}"
+						},
+						"url": "{{baseUrl}}/api/admin/plants"
+					}
+				},
+				{
+					"name": "GET All Plants (map IDs)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"",
+									"var data = pm.response.json();",
+									"var plants = data.plants || data;",
+									"",
+									"plants.forEach(function (p) {",
+									"    var en = (p.nameEn || '').toLowerCase();",
+									"    var sci = (p.nameScientific || '').toLowerCase();",
+									"",
+									"    if (sci.indexOf('mentha spicata') > -1) {",
+									"        pm.collectionVariables.set('plantId_spearmint', String(p.id));",
+									"    } else if (sci.indexOf('ocimum basilicum') > -1) {",
+									"        pm.collectionVariables.set('plantId_basil', String(p.id));",
+									"    } else if (sci.indexOf('salvia officinalis') > -1) {",
+									"        pm.collectionVariables.set('plantId_sage', String(p.id));",
+									"    } else if (sci.indexOf('thymus') > -1) {",
+									"        pm.collectionVariables.set('plantId_thyme', String(p.id));",
+									"    } else if (sci.indexOf('matricaria') > -1 || sci.indexOf('chamomilla') > -1) {",
+									"        pm.collectionVariables.set('plantId_chamomile', String(p.id));",
+									"    } else if (sci.indexOf('rosmarinus') > -1 || en === 'rosemary') {",
+									"        pm.collectionVariables.set('plantId_rosemary', String(p.id));",
+									"    }",
+									"});",
+									"",
+									"pm.test('All 6 plant IDs mapped', function () {",
+									"    ['spearmint','basil','sage','thyme','chamomile','rosemary'].forEach(function (k) {",
+									"        var v = pm.collectionVariables.get('plantId_' + k);",
+									"        pm.expect(v, 'plantId_' + k + ' should be set').to.not.be.empty;",
+									"        console.log('plantId_' + k + ' = ' + v);",
+									"    });",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"url": "{{baseUrl}}/api/admin/plants"
+					}
+				}
+			]
+		},
+		{
+			"name": "Setup (Suitability Bulk)",
+			"item": [
+				{
+					"name": "Bulk Suitability – Spearmint",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var code = pm.response.code;",
+									"pm.test('Suitability created (201) or conflict (409)', function () {",
+									"    pm.expect([201, 409]).to.include(code);",
+									"});",
+									"if (code === 201) {",
+									"    pm.test('32 scores created', function () {",
+									"        pm.expect(pm.response.json().length).to.eql(32);",
+									"    });",
+									"}"
+								]
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var pid = parseInt(pm.collectionVariables.get('plantId_spearmint'));",
+									"var g = function(k){ return parseInt(pm.collectionVariables.get(k)); };",
+									"var s = [];",
+									"var opts = [",
+									"  ['optionId_site_indoor',80,'Use grow lights'],['optionId_site_balcony',90,'Protect from heat'],['optionId_site_rooftop',75,'Provide shade'],['optionId_site_garden',95,'Ideal'],['optionId_site_unknown',70,'Most locations work'],",
+									"  ['optionId_light_full_sun',85,'Protect from noon sun'],['optionId_light_partial_sun',90,'Ideal light'],['optionId_light_bright_indirect',75,'Near window'],['optionId_light_low_light',40,'Add grow light'],['optionId_light_unknown',65,'Bright window'],",
+									"  ['optionId_container_small_pot',50,'Frequent repotting'],['optionId_container_medium_pot',85,'Good size'],['optionId_container_large_pot',90,'Excellent'],['optionId_container_bed_or_ground',95,'Use barrier'],['optionId_container_unknown',70,'Medium+ pot'],",
+									"  ['optionId_water_daily',90,'Loves moisture'],['optionId_water_every_2_3',85,'Good frequency'],['optionId_water_weekly',50,'May wilt'],['optionId_water_irregular',20,'Needs consistency'],['optionId_water_unknown',60,'Water when dry'],",
+									"  ['optionId_drainage_good',90,'Perfect'],['optionId_drainage_average',80,'OK'],['optionId_drainage_poor',40,'Add perlite'],['optionId_drainage_unknown',65,'Ensure holes'],",
+									"  ['optionId_prefs_cooking',90,'Excellent culinary herb'],['optionId_prefs_tea',95,'Perfect for mint tea'],['optionId_prefs_beginner',90,'Very easy'],['optionId_prefs_aromatic',95,'Wonderfully fragrant'],['optionId_prefs_medicinal',80,'Good for digestion'],['optionId_prefs_low_water',30,'Needs regular water'],['optionId_prefs_fast_growing',95,'Very fast'],['optionId_prefs_flowering',40,'Small flowers']",
+									"];",
+									"opts.forEach(function(o){ s.push({plantId:pid,optionId:g(o[0]),score:o[1],adjustmentTipEn:o[2],adjustmentTipAr:''}); });",
+									"pm.variables.set('bulkBody', JSON.stringify({suitabilities:s}));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{bulkBody}}"
+						},
+						"url": "{{baseUrl}}/api/admin/plant-suitability/bulk"
+					}
+				},
+				{
+					"name": "Bulk Suitability – Sweet Basil",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var code = pm.response.code;",
+									"pm.test('Suitability created (201) or conflict (409)', function () { pm.expect([201,409]).to.include(code); });"
+								]
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var pid = parseInt(pm.collectionVariables.get('plantId_basil'));",
+									"var g = function(k){ return parseInt(pm.collectionVariables.get(k)); };",
+									"var s = [];",
+									"var opts = [",
+									"  ['optionId_site_indoor',85,'Near sunny window'],['optionId_site_balcony',95,'Ideal'],['optionId_site_rooftop',80,'Protect from wind'],['optionId_site_garden',95,'Perfect'],['optionId_site_unknown',70,'Warm sunny spot'],",
+									"  ['optionId_light_full_sun',95,'Basil loves sun'],['optionId_light_partial_sun',75,'Less productive'],['optionId_light_bright_indirect',60,'Will grow leggy'],['optionId_light_low_light',30,'Needs direct sun'],['optionId_light_unknown',60,'Find sunniest spot'],",
+									"  ['optionId_container_small_pot',60,'Single plant'],['optionId_container_medium_pot',90,'Good for 2-3'],['optionId_container_large_pot',90,'Excellent'],['optionId_container_bed_or_ground',95,'Best'],['optionId_container_unknown',70,'Medium+'],",
+									"  ['optionId_water_daily',85,'Good in hot weather'],['optionId_water_every_2_3',90,'Ideal'],['optionId_water_weekly',45,'Too infrequent'],['optionId_water_irregular',15,'Will wilt and die'],['optionId_water_unknown',55,'Every 2-3 days'],",
+									"  ['optionId_drainage_good',90,'Perfect'],['optionId_drainage_average',75,'Watch root rot'],['optionId_drainage_poor',30,'High root rot risk'],['optionId_drainage_unknown',60,'Use pot with holes'],",
+									"  ['optionId_prefs_cooking',95,'Top culinary herb'],['optionId_prefs_tea',60,'Can make basil tea'],['optionId_prefs_beginner',75,'Easy but needs attention'],['optionId_prefs_aromatic',90,'Very fragrant'],['optionId_prefs_medicinal',55,'Some uses'],['optionId_prefs_low_water',15,'Not drought tolerant'],['optionId_prefs_fast_growing',90,'Grows quickly'],['optionId_prefs_flowering',50,'Pinch flowers']",
+									"];",
+									"opts.forEach(function(o){ s.push({plantId:pid,optionId:g(o[0]),score:o[1],adjustmentTipEn:o[2],adjustmentTipAr:''}); });",
+									"pm.variables.set('bulkBody', JSON.stringify({suitabilities:s}));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{bulkBody}}"
+						},
+						"url": "{{baseUrl}}/api/admin/plant-suitability/bulk"
+					}
+				},
+				{
+					"name": "Bulk Suitability – Sage",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var code = pm.response.code;",
+									"pm.test('Suitability created (201) or conflict (409)', function () { pm.expect([201,409]).to.include(code); });"
+								]
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var pid = parseInt(pm.collectionVariables.get('plantId_sage'));",
+									"var g = function(k){ return parseInt(pm.collectionVariables.get(k)); };",
+									"var s = [];",
+									"var opts = [",
+									"  ['optionId_site_indoor',70,'Needs sunny window'],['optionId_site_balcony',90,'Great'],['optionId_site_rooftop',85,'Handles heat'],['optionId_site_garden',95,'Ideal'],['optionId_site_unknown',70,'Sunny outdoor best'],",
+									"  ['optionId_light_full_sun',95,'Perfect'],['optionId_light_partial_sun',70,'OK'],['optionId_light_bright_indirect',50,'May be leggy'],['optionId_light_low_light',25,'Not suitable'],['optionId_light_unknown',55,'Find sunniest spot'],",
+									"  ['optionId_container_small_pot',45,'Too small'],['optionId_container_medium_pot',80,'Good for one'],['optionId_container_large_pot',90,'Excellent'],['optionId_container_bed_or_ground',95,'Best'],['optionId_container_unknown',65,'Large pot+'],",
+									"  ['optionId_water_daily',40,'Too much'],['optionId_water_every_2_3',70,'OK in heat'],['optionId_water_weekly',90,'Ideal'],['optionId_water_irregular',75,'Handles drought'],['optionId_water_unknown',70,'Once a week'],",
+									"  ['optionId_drainage_good',95,'Essential'],['optionId_drainage_average',70,'Add sand'],['optionId_drainage_poor',25,'Root rot risk'],['optionId_drainage_unknown',55,'Good drainage critical'],",
+									"  ['optionId_prefs_cooking',85,'Classic herb'],['optionId_prefs_tea',80,'Traditional tea'],['optionId_prefs_beginner',80,'Easy to maintain'],['optionId_prefs_aromatic',85,'Strong aroma'],['optionId_prefs_medicinal',90,'Many benefits'],['optionId_prefs_low_water',90,'Very drought tolerant'],['optionId_prefs_fast_growing',40,'Slow grower'],['optionId_prefs_flowering',70,'Purple flowers']",
+									"];",
+									"opts.forEach(function(o){ s.push({plantId:pid,optionId:g(o[0]),score:o[1],adjustmentTipEn:o[2],adjustmentTipAr:''}); });",
+									"pm.variables.set('bulkBody', JSON.stringify({suitabilities:s}));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{bulkBody}}"
+						},
+						"url": "{{baseUrl}}/api/admin/plant-suitability/bulk"
+					}
+				},
+				{
+					"name": "Bulk Suitability – Syrian Thyme",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var code = pm.response.code;",
+									"pm.test('Suitability created (201) or conflict (409)', function () { pm.expect([201,409]).to.include(code); });"
+								]
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var pid = parseInt(pm.collectionVariables.get('plantId_thyme'));",
+									"var g = function(k){ return parseInt(pm.collectionVariables.get(k)); };",
+									"var s = [];",
+									"var opts = [",
+									"  ['optionId_site_indoor',60,'Very challenging indoors'],['optionId_site_balcony',90,'Great'],['optionId_site_rooftop',90,'Handles heat'],['optionId_site_garden',95,'Perfect'],['optionId_site_unknown',65,'Outdoor best'],",
+									"  ['optionId_light_full_sun',95,'Essential'],['optionId_light_partial_sun',65,'Slower growth'],['optionId_light_bright_indirect',40,'Not enough'],['optionId_light_low_light',15,'Will not survive'],['optionId_light_unknown',50,'6+ hours sun'],",
+									"  ['optionId_container_small_pot',40,'Too small'],['optionId_container_medium_pot',75,'OK'],['optionId_container_large_pot',90,'Good'],['optionId_container_bed_or_ground',95,'Best'],['optionId_container_unknown',60,'Large pot+'],",
+									"  ['optionId_water_daily',25,'Way too much'],['optionId_water_every_2_3',50,'Still frequent'],['optionId_water_weekly',90,'Ideal'],['optionId_water_irregular',85,'Very hardy'],['optionId_water_unknown',70,'Weekly or less'],",
+									"  ['optionId_drainage_good',95,'Essential'],['optionId_drainage_average',65,'Must improve'],['optionId_drainage_poor',15,'Will die'],['optionId_drainage_unknown',50,'Critical need'],",
+									"  ['optionId_prefs_cooking',90,'Classic herb'],['optionId_prefs_tea',75,'Thyme tea'],['optionId_prefs_beginner',75,'Easy once established'],['optionId_prefs_aromatic',95,'Intense fragrance'],['optionId_prefs_medicinal',85,'Respiratory benefits'],['optionId_prefs_low_water',95,'Extremely drought tolerant'],['optionId_prefs_fast_growing',35,'Slow grower'],['optionId_prefs_flowering',65,'Small flowers']",
+									"];",
+									"opts.forEach(function(o){ s.push({plantId:pid,optionId:g(o[0]),score:o[1],adjustmentTipEn:o[2],adjustmentTipAr:''}); });",
+									"pm.variables.set('bulkBody', JSON.stringify({suitabilities:s}));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{bulkBody}}"
+						},
+						"url": "{{baseUrl}}/api/admin/plant-suitability/bulk"
+					}
+				},
+				{
+					"name": "Bulk Suitability – German Chamomile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var code = pm.response.code;",
+									"pm.test('Suitability created (201) or conflict (409)', function () { pm.expect([201,409]).to.include(code); });"
+								]
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var pid = parseInt(pm.collectionVariables.get('plantId_chamomile'));",
+									"var g = function(k){ return parseInt(pm.collectionVariables.get(k)); };",
+									"var s = [];",
+									"var opts = [",
+									"  ['optionId_site_indoor',50,'Difficult indoors'],['optionId_site_balcony',85,'Good'],['optionId_site_rooftop',75,'Protect from wind'],['optionId_site_garden',95,'Ideal, self-seeds'],['optionId_site_unknown',65,'Outdoor best'],",
+									"  ['optionId_light_full_sun',90,'Loves sun'],['optionId_light_partial_sun',80,'Also works'],['optionId_light_bright_indirect',55,'Less flowering'],['optionId_light_low_light',20,'Not suitable'],['optionId_light_unknown',55,'Sunny preferred'],",
+									"  ['optionId_container_small_pot',55,'Very limited'],['optionId_container_medium_pot',75,'For a few plants'],['optionId_container_large_pot',85,'Good size'],['optionId_container_bed_or_ground',95,'Best'],['optionId_container_unknown',65,'Large pot+'],",
+									"  ['optionId_water_daily',65,'OK in hot weather'],['optionId_water_every_2_3',85,'Good'],['optionId_water_weekly',75,'Acceptable'],['optionId_water_irregular',40,'Needs consistency'],['optionId_water_unknown',65,'Every 2-3 days'],",
+									"  ['optionId_drainage_good',90,'Important'],['optionId_drainage_average',75,'OK'],['optionId_drainage_poor',35,'Add perlite'],['optionId_drainage_unknown',60,'Ensure drainage'],",
+									"  ['optionId_prefs_cooking',30,'Not a cooking herb'],['optionId_prefs_tea',95,'Best tea herb'],['optionId_prefs_beginner',70,'Moderately easy'],['optionId_prefs_aromatic',80,'Apple fragrance'],['optionId_prefs_medicinal',95,'Top medicinal'],['optionId_prefs_low_water',55,'Moderate needs'],['optionId_prefs_fast_growing',80,'Flowers 8-10 weeks'],['optionId_prefs_flowering',95,'Beautiful daisies']",
+									"];",
+									"opts.forEach(function(o){ s.push({plantId:pid,optionId:g(o[0]),score:o[1],adjustmentTipEn:o[2],adjustmentTipAr:''}); });",
+									"pm.variables.set('bulkBody', JSON.stringify({suitabilities:s}));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{bulkBody}}"
+						},
+						"url": "{{baseUrl}}/api/admin/plant-suitability/bulk"
+					}
+				},
+				{
+					"name": "Bulk Suitability – Rosemary",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var code = pm.response.code;",
+									"pm.test('Suitability created (201) or conflict (409)', function () { pm.expect([201,409]).to.include(code); });"
+								]
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var pid = parseInt(pm.collectionVariables.get('plantId_rosemary'));",
+									"var g = function(k){ return parseInt(pm.collectionVariables.get(k)); };",
+									"var s = [];",
+									"var opts = [",
+									"  ['optionId_site_indoor',55,'Very challenging'],['optionId_site_balcony',90,'Great'],['optionId_site_rooftop',90,'Handles heat'],['optionId_site_garden',95,'Perfect'],['optionId_site_unknown',65,'Outdoor best'],",
+									"  ['optionId_light_full_sun',95,'Essential'],['optionId_light_partial_sun',65,'Slower growth'],['optionId_light_bright_indirect',40,'Not enough'],['optionId_light_low_light',15,'Will not survive'],['optionId_light_unknown',50,'Needs 6+ hours sun'],",
+									"  ['optionId_container_small_pot',30,'Too small, rosemary is large'],['optionId_container_medium_pot',70,'OK for 1-2 years'],['optionId_container_large_pot',90,'Good'],['optionId_container_bed_or_ground',95,'Best long-term'],['optionId_container_unknown',60,'Large pot+'],",
+									"  ['optionId_water_daily',20,'Will cause root rot'],['optionId_water_every_2_3',50,'Still too frequent'],['optionId_water_weekly',90,'Ideal'],['optionId_water_irregular',85,'Very hardy'],['optionId_water_unknown',70,'Once a week or less'],",
+									"  ['optionId_drainage_good',95,'Absolutely essential'],['optionId_drainage_average',60,'Must improve'],['optionId_drainage_poor',10,'Will die from root rot'],['optionId_drainage_unknown',45,'Critical'],",
+									"  ['optionId_prefs_cooking',90,'Classic herb'],['optionId_prefs_tea',70,'Traditional tea'],['optionId_prefs_beginner',75,'Easy once established'],['optionId_prefs_aromatic',95,'Intensely fragrant'],['optionId_prefs_medicinal',80,'Memory and circulation'],['optionId_prefs_low_water',95,'Extremely drought tolerant'],['optionId_prefs_fast_growing',30,'Slow growing shrub'],['optionId_prefs_flowering',75,'Small blue flowers']",
+									"];",
+									"opts.forEach(function(o){ s.push({plantId:pid,optionId:g(o[0]),score:o[1],adjustmentTipEn:o[2],adjustmentTipAr:''}); });",
+									"pm.variables.set('bulkBody', JSON.stringify({suitabilities:s}));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{bulkBody}}"
+						},
+						"url": "{{baseUrl}}/api/admin/plant-suitability/bulk"
+					}
+				}
+			]
+		},
+		{
+			"name": "Auth (User)",
+			"item": [
+				{
+					"name": "Register Test User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var code = pm.response.code;",
+									"pm.test('Register returns 200 or user exists (400/409)', function () {",
+									"    pm.expect([200, 400, 409]).to.include(code);",
+									"});",
+									"if (code === 200) {",
+									"    pm.test('Response contains userId', function () {",
+									"        pm.expect(pm.response.json().userId).to.be.a('number');",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"fullName\": \"Test User\",\n  \"email\": \"testuser@gharsih.ps\",\n  \"password\": \"Test1234!\"\n}"
+						},
+						"url": "{{baseUrl}}/api/auth/register"
+					}
+				},
+				{
+					"name": "User Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Login returns 200', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"var jsonData = pm.response.json();",
+									"",
+									"pm.test('Access token present', function () {",
+									"    pm.expect(jsonData.accessToken).to.be.a('string');",
+									"    pm.expect(jsonData.accessToken).to.not.be.empty;",
+									"});",
+									"",
+									"pm.collectionVariables.set('userToken', jsonData.accessToken);",
+									"console.log('userToken stored');"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"testuser@gharsih.ps\",\n  \"password\": \"Test1234!\"\n}"
+						},
+						"url": "{{baseUrl}}/api/auth/login"
+					}
+				}
+			]
+		},
+		{
+			"name": "Recommendations (6 Scenarios)",
+			"item": [
+				{
+					"name": "S1: Balcony+FullSun+MedPot+Every23+GoodDrain+Cooking+Aromatic",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"var d = pm.response.json();",
+									"pm.collectionVariables.set('sessionId', d.sessionId);",
+									"pm.collectionVariables.set('sessionId_s1', d.sessionId);",
+									"pm.test('Has recommendations', function () { pm.expect(d.totalRecommendations).to.be.at.least(1); });",
+									"pm.test('Top match >= 80%', function () { pm.expect(d.recommendations[0].matchPercentage).to.be.at.least(80); });",
+									"pm.collectionVariables.set('topPlantId', String(d.recommendations[0].plantId));",
+									"console.log('S1 session=' + d.sessionId + ' top=' + d.recommendations[0].nameEn + ' ' + d.recommendations[0].matchPercentage + '%');"
+								]
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var g = function(k) { return parseInt(pm.collectionVariables.get(k)); };",
+									"var body = { answers: [",
+									"    {questionId: g('questionId_site'), selectedOptionIds: [g('optionId_site_balcony')]},",
+									"    {questionId: g('questionId_light'), selectedOptionIds: [g('optionId_light_full_sun')]},",
+									"    {questionId: g('questionId_container'), selectedOptionIds: [g('optionId_container_medium_pot')]},",
+									"    {questionId: g('questionId_water'), selectedOptionIds: [g('optionId_water_every_2_3')]},",
+									"    {questionId: g('questionId_soil'), selectedOptionIds: [g('optionId_soil_potting_mix')]},",
+									"    {questionId: g('questionId_drainage'), selectedOptionIds: [g('optionId_drainage_good')]},",
+									"    {questionId: g('questionId_prefs'), selectedOptionIds: [g('optionId_prefs_cooking'), g('optionId_prefs_aromatic')]}",
+									"]};",
+									"pm.variables.set('scenarioBody', JSON.stringify(body));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{scenarioBody}}"
+						},
+						"url": "{{baseUrl}}/api/user/plant-recommendation/submit-answers"
+					}
+				},
+				{
+					"name": "S2: Indoor+LowLight+SmallPot+Irregular+PoorDrain (worst)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"var d = pm.response.json();",
+									"pm.collectionVariables.set('sessionId_s2', d.sessionId);",
+									"pm.test('Has recommendations', function () { pm.expect(d.totalRecommendations).to.be.at.least(1); });",
+									"pm.test('Top match < 70% (worst case)', function () { pm.expect(d.recommendations[0].matchPercentage).to.be.below(70); });",
+									"console.log('S2 top=' + d.recommendations[0].nameEn + ' ' + d.recommendations[0].matchPercentage + '%');"
+								]
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var g = function(k) { return parseInt(pm.collectionVariables.get(k)); };",
+									"var body = { answers: [",
+									"    {questionId: g('questionId_site'), selectedOptionIds: [g('optionId_site_indoor')]},",
+									"    {questionId: g('questionId_light'), selectedOptionIds: [g('optionId_light_low_light')]},",
+									"    {questionId: g('questionId_container'), selectedOptionIds: [g('optionId_container_small_pot')]},",
+									"    {questionId: g('questionId_water'), selectedOptionIds: [g('optionId_water_irregular')]},",
+									"    {questionId: g('questionId_soil'), selectedOptionIds: [g('optionId_soil_garden_soil')]},",
+									"    {questionId: g('questionId_drainage'), selectedOptionIds: [g('optionId_drainage_poor')]}",
+									"]};",
+									"pm.variables.set('scenarioBody', JSON.stringify(body));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{scenarioBody}}"
+						},
+						"url": "{{baseUrl}}/api/user/plant-recommendation/submit-answers"
+					}
+				},
+				{
+					"name": "S3: Garden+FullSun+Ground+Weekly+Sandy+GoodDrain+LowWater+Medicinal",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"var d = pm.response.json();",
+									"pm.collectionVariables.set('sessionId_s3', d.sessionId);",
+									"pm.test('Has recommendations', function () { pm.expect(d.totalRecommendations).to.be.at.least(1); });",
+									"pm.test('Top match >= 85% (ideal drought)', function () { pm.expect(d.recommendations[0].matchPercentage).to.be.at.least(85); });",
+									"console.log('S3 top=' + d.recommendations[0].nameEn + ' ' + d.recommendations[0].matchPercentage + '%');"
+								]
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var g = function(k) { return parseInt(pm.collectionVariables.get(k)); };",
+									"var body = { answers: [",
+									"    {questionId: g('questionId_site'), selectedOptionIds: [g('optionId_site_garden')]},",
+									"    {questionId: g('questionId_light'), selectedOptionIds: [g('optionId_light_full_sun')]},",
+									"    {questionId: g('questionId_container'), selectedOptionIds: [g('optionId_container_bed_or_ground')]},",
+									"    {questionId: g('questionId_water'), selectedOptionIds: [g('optionId_water_weekly')]},",
+									"    {questionId: g('questionId_soil'), selectedOptionIds: [g('optionId_soil_sandy')]},",
+									"    {questionId: g('questionId_drainage'), selectedOptionIds: [g('optionId_drainage_good')]},",
+									"    {questionId: g('questionId_prefs'), selectedOptionIds: [g('optionId_prefs_low_water'), g('optionId_prefs_medicinal')]}",
+									"]};",
+									"pm.variables.set('scenarioBody', JSON.stringify(body));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{scenarioBody}}"
+						},
+						"url": "{{baseUrl}}/api/user/plant-recommendation/submit-answers"
+					}
+				},
+				{
+					"name": "S4: Indoor+PartialSun+MedPot+Daily+PottingMix+Tea+Beginner",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"var d = pm.response.json();",
+									"pm.collectionVariables.set('sessionId_s4', d.sessionId);",
+									"pm.test('Has recommendations', function () { pm.expect(d.totalRecommendations).to.be.at.least(1); });",
+									"console.log('S4 top=' + d.recommendations[0].nameEn + ' ' + d.recommendations[0].matchPercentage + '%');"
+								]
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var g = function(k) { return parseInt(pm.collectionVariables.get(k)); };",
+									"var body = { answers: [",
+									"    {questionId: g('questionId_site'), selectedOptionIds: [g('optionId_site_indoor')]},",
+									"    {questionId: g('questionId_light'), selectedOptionIds: [g('optionId_light_partial_sun')]},",
+									"    {questionId: g('questionId_container'), selectedOptionIds: [g('optionId_container_medium_pot')]},",
+									"    {questionId: g('questionId_water'), selectedOptionIds: [g('optionId_water_daily')]},",
+									"    {questionId: g('questionId_soil'), selectedOptionIds: [g('optionId_soil_potting_mix')]},",
+									"    {questionId: g('questionId_prefs'), selectedOptionIds: [g('optionId_prefs_tea'), g('optionId_prefs_beginner')]}",
+									"]};",
+									"pm.variables.set('scenarioBody', JSON.stringify(body));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{scenarioBody}}"
+						},
+						"url": "{{baseUrl}}/api/user/plant-recommendation/submit-answers"
+					}
+				},
+				{
+					"name": "S5: Rooftop+FullSun+LargePot+Irregular+Sandy+GoodDrain+LowWater",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"var d = pm.response.json();",
+									"pm.collectionVariables.set('sessionId_s5', d.sessionId);",
+									"pm.test('Has recommendations', function () { pm.expect(d.totalRecommendations).to.be.at.least(1); });",
+									"pm.test('Top match >= 80% (drought roof)', function () { pm.expect(d.recommendations[0].matchPercentage).to.be.at.least(80); });",
+									"console.log('S5 top=' + d.recommendations[0].nameEn + ' ' + d.recommendations[0].matchPercentage + '%');"
+								]
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var g = function(k) { return parseInt(pm.collectionVariables.get(k)); };",
+									"var body = { answers: [",
+									"    {questionId: g('questionId_site'), selectedOptionIds: [g('optionId_site_rooftop')]},",
+									"    {questionId: g('questionId_light'), selectedOptionIds: [g('optionId_light_full_sun')]},",
+									"    {questionId: g('questionId_container'), selectedOptionIds: [g('optionId_container_large_pot')]},",
+									"    {questionId: g('questionId_water'), selectedOptionIds: [g('optionId_water_irregular')]},",
+									"    {questionId: g('questionId_soil'), selectedOptionIds: [g('optionId_soil_sandy')]},",
+									"    {questionId: g('questionId_drainage'), selectedOptionIds: [g('optionId_drainage_good')]},",
+									"    {questionId: g('questionId_prefs'), selectedOptionIds: [g('optionId_prefs_low_water')]}",
+									"]};",
+									"pm.variables.set('scenarioBody', JSON.stringify(body));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{scenarioBody}}"
+						},
+						"url": "{{baseUrl}}/api/user/plant-recommendation/submit-answers"
+					}
+				},
+				{
+					"name": "S6: All Unknown (minimum info)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"var d = pm.response.json();",
+									"pm.collectionVariables.set('sessionId_s6', d.sessionId);",
+									"pm.test('Has recommendations even with unknowns', function () { pm.expect(d.totalRecommendations).to.be.at.least(1); });",
+									"pm.test('All scores moderate 40-70%', function () {",
+									"    d.recommendations.forEach(function(r) {",
+									"        pm.expect(r.matchPercentage).to.be.at.least(30);",
+									"        pm.expect(r.matchPercentage).to.be.below(80);",
+									"    });",
+									"});",
+									"console.log('S6 top=' + d.recommendations[0].nameEn + ' ' + d.recommendations[0].matchPercentage + '%');"
+								]
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var g = function(k) { return parseInt(pm.collectionVariables.get(k)); };",
+									"var body = { answers: [",
+									"    {questionId: g('questionId_site'), selectedOptionIds: [g('optionId_site_unknown')]},",
+									"    {questionId: g('questionId_light'), selectedOptionIds: [g('optionId_light_unknown')]},",
+									"    {questionId: g('questionId_container'), selectedOptionIds: [g('optionId_container_unknown')]},",
+									"    {questionId: g('questionId_water'), selectedOptionIds: [g('optionId_water_unknown')]},",
+									"    {questionId: g('questionId_soil'), selectedOptionIds: [g('optionId_soil_unknown')]}",
+									"]};",
+									"pm.variables.set('scenarioBody', JSON.stringify(body));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{scenarioBody}}"
+						},
+						"url": "{{baseUrl}}/api/user/plant-recommendation/submit-answers"
+					}
+				}
+			]
+		},
+		{
+			"name": "Recommendation Details",
+			"item": [
+				{
+					"name": "GET Recommendations by Session (S1)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"var d = pm.response.json();",
+									"pm.test('Has recommendations array', function () {",
+									"    pm.expect(d.recommendations).to.be.an('array').that.is.not.empty;",
+									"});",
+									"pm.test('Each recommendation has required fields', function () {",
+									"    var r = d.recommendations[0];",
+									"    pm.expect(r).to.have.property('plantId');",
+									"    pm.expect(r).to.have.property('nameEn');",
+									"    pm.expect(r).to.have.property('nameAr');",
+									"    pm.expect(r).to.have.property('matchPercentage');",
+									"    pm.expect(r).to.have.property('matchLevel');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": "{{baseUrl}}/api/user/plant-recommendation/recommendations/{{sessionId_s1}}"
+					}
+				},
+				{
+					"name": "GET Single Plant Detail (S1 top plant)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"var d = pm.response.json();",
+									"pm.test('Has detailed fields', function () {",
+									"    pm.expect(d).to.have.property('nameEn');",
+									"    pm.expect(d).to.have.property('matchPercentage');",
+									"    pm.expect(d).to.have.property('category');",
+									"    pm.expect(d).to.have.property('difficultyLevel');",
+									"    pm.expect(d).to.have.property('recommendationReasonsEn');",
+									"});",
+									"console.log('Detail: ' + d.nameEn + ' ' + d.matchPercentage + '% ' + d.matchLevel);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": "{{baseUrl}}/api/user/plant-recommendation/recommendations/{{sessionId_s1}}/plant/{{topPlantId}}"
+					}
+				},
+				{
+					"name": "GET User Questions (user endpoint)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"var d = pm.response.json();",
+									"pm.test('Has required and optional questions', function () {",
+									"    pm.expect(d.requiredQuestions).to.be.an('array');",
+									"    pm.expect(d.optionalQuestions).to.be.an('array');",
+									"    pm.expect(d.totalRequired).to.be.at.least(4);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": "{{baseUrl}}/api/user/plant-recommendation/questions"
+					}
+				}
+			]
+		},
+		{
+			"name": "My Crops Flow",
+			"item": [
+				{
+					"name": "Select Plant (add to My Crops)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"var d = pm.response.json();",
+									"pm.collectionVariables.set('userPlantId', String(d.userPlantId));",
+									"pm.test('Status is PLANNED', function () { pm.expect(d.status).to.eql('PLANNED'); });",
+									"pm.test('Has plantNameEn', function () { pm.expect(d.plantNameEn).to.be.a('string'); });",
+									"console.log('Selected: ' + d.plantNameEn + ' userPlantId=' + d.userPlantId);"
+								]
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var body = {",
+									"    sessionId: pm.collectionVariables.get('sessionId_s1'),",
+									"    plantId: parseInt(pm.collectionVariables.get('topPlantId')),",
+									"    nickname: 'My Test Plant',",
+									"    notes: 'E2E test selection'",
+									"};",
+									"pm.variables.set('selectBody', JSON.stringify(body));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{selectBody}}"
+						},
+						"url": "{{baseUrl}}/api/user/plant-recommendation/select"
+					}
+				},
+				{
+					"name": "My Crops Overview (after select)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"var d = pm.response.json();",
+									"pm.test('At least 1 planned crop', function () { pm.expect(d.plannedCount).to.be.at.least(1); });",
+									"pm.test('Planned array not empty', function () { pm.expect(d.planned).to.be.an('array').that.is.not.empty; });"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": "{{baseUrl}}/api/user/my-crops/overview"
+					}
+				},
+				{
+					"name": "Mark as Planted",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"var d = pm.response.json();",
+									"pm.test('Status changed to PLANTED', function () { pm.expect(d.status).to.eql('PLANTED'); });",
+									"pm.test('plantedDate is set', function () { pm.expect(d.plantedDate).to.not.be.null; });"
+								]
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var body = { userPlantId: parseInt(pm.collectionVariables.get('userPlantId')) };",
+									"pm.variables.set('markPlantedBody', JSON.stringify(body));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{markPlantedBody}}"
+						},
+						"url": "{{baseUrl}}/api/user/my-crops/mark-planted"
+					}
+				},
+				{
+					"name": "GET Plant Info",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"var d = pm.response.json();",
+									"pm.test('Has plant details', function () {",
+									"    pm.expect(d).to.have.property('plantNameEn');",
+									"    pm.expect(d).to.have.property('status');",
+									"    pm.expect(d.status).to.eql('PLANTED');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": "{{baseUrl}}/api/user/my-crops/{{userPlantId}}/info"
+					}
+				},
+				{
+					"name": "GET Planting Steps",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"var d = pm.response.json();",
+									"pm.test('Has planting data', function () {",
+									"    pm.expect(d).to.have.property('plantNameEn');",
+									"    pm.expect(d).to.have.property('germinationDays');",
+									"    pm.expect(d).to.have.property('spacingCm');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": "{{baseUrl}}/api/user/my-crops/{{userPlantId}}/planting-steps"
+					}
+				},
+				{
+					"name": "GET Tasks",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"var d = pm.response.json();",
+									"pm.test('Has tasks structure', function () {",
+									"    pm.expect(d).to.have.property('userPlantId');",
+									"    pm.expect(d).to.have.property('totalTasks');",
+									"    pm.expect(d).to.have.property('tasks');",
+									"    pm.expect(d.tasks).to.be.an('array');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": "{{baseUrl}}/api/user/my-crops/{{userPlantId}}/tasks"
+					}
+				},
+				{
+					"name": "Harvest Plant",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"var d = pm.response.json();",
+									"pm.test('Status is HARVESTED', function () { pm.expect(d.status).to.eql('HARVESTED'); });"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{}"
+						},
+						"url": "{{baseUrl}}/api/user/my-crops/{{userPlantId}}/harvest"
+					}
+				},
+				{
+					"name": "My Crops Overview (after harvest)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Status 200', function () { pm.response.to.have.status(200); });",
+									"var d = pm.response.json();",
+									"pm.test('Harvested count >= 1', function () { pm.expect(d.harvestedCount).to.be.at.least(1); });"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": "{{baseUrl}}/api/user/my-crops/overview"
+					}
+				}
+			]
+		},
+		{
+			"name": "Edge Cases & Security",
+			"item": [
+				{
+					"name": "EC1: Missing required questions → 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Returns 400 Bad Request', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"console.log('EC1 PASS: missing required questions correctly rejected');"
+								]
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var g = function(k) { return parseInt(pm.collectionVariables.get(k)); };",
+									"var body = { answers: [",
+									"    {questionId: g('questionId_site'), selectedOptionIds: [g('optionId_site_indoor')]}",
+									"]};",
+									"pm.variables.set('ec1Body', JSON.stringify(body));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{ec1Body}}"
+						},
+						"url": "{{baseUrl}}/api/user/plant-recommendation/submit-answers"
+					}
+				},
+				{
+					"name": "EC2: Empty answers array → 400",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Returns 400 Bad Request', function () {",
+									"    pm.response.to.have.status(400);",
+									"});",
+									"console.log('EC2 PASS: empty answers correctly rejected');"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"answers\": []}"
+						},
+						"url": "{{baseUrl}}/api/user/plant-recommendation/submit-answers"
+					}
+				},
+				{
+					"name": "EC3: Invalid option ID → 400/404",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Returns 400 or 404', function () {",
+									"    pm.expect([400, 404]).to.include(pm.response.code);",
+									"});",
+									"console.log('EC3 PASS: invalid option rejected with ' + pm.response.code);"
+								]
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"var g = function(k) { return parseInt(pm.collectionVariables.get(k)); };",
+									"var body = { answers: [",
+									"    {questionId: g('questionId_site'), selectedOptionIds: [99999]},",
+									"    {questionId: g('questionId_light'), selectedOptionIds: [g('optionId_light_full_sun')]},",
+									"    {questionId: g('questionId_container'), selectedOptionIds: [g('optionId_container_medium_pot')]},",
+									"    {questionId: g('questionId_water'), selectedOptionIds: [g('optionId_water_daily')]},",
+									"    {questionId: g('questionId_soil'), selectedOptionIds: [g('optionId_soil_potting_mix')]}",
+									"]};",
+									"pm.variables.set('ec3Body', JSON.stringify(body));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" },
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{{ec3Body}}"
+						},
+						"url": "{{baseUrl}}/api/user/plant-recommendation/submit-answers"
+					}
+				},
+				{
+					"name": "EC4: No token on submit → 401",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Returns 401 Unauthorized', function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"console.log('EC4 PASS: no token correctly returns 401');"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\"answers\": [{\"questionId\": 1, \"selectedOptionIds\": [1]}]}"
+						},
+						"url": "{{baseUrl}}/api/user/plant-recommendation/submit-answers"
+					}
+				},
+				{
+					"name": "EC5: No token on questions → 401",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Returns 401 Unauthorized', function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"console.log('EC5 PASS: no token on questions returns 401');"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/user/plant-recommendation/questions"
+					}
+				},
+				{
+					"name": "EC6: User token on admin endpoint → MUST be 403",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('SECURITY: Must return 403 Forbidden (not 302 redirect)', function () {",
+									"    // This is a security requirement: non-admin users MUST get 403.",
+									"    // If this returns 302 it means Spring Security is misconfigured",
+									"    // (redirecting instead of rejecting). This test MUST FAIL on 302",
+									"    // to flag the security bug.",
+									"    pm.expect(pm.response.code, 'Expected 403 but got ' + pm.response.code + ' — SECURITY BUG: fix Spring Security to return 403 for API endpoints').to.eql(403);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{userToken}}" }
+						],
+						"url": "{{baseUrl}}/api/admin/plants"
+					}
+				},
+				{
+					"name": "EC7: No token on My Crops → 401",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Returns 401 Unauthorized', function () {",
+									"    pm.response.to.have.status(401);",
+									"});",
+									"console.log('EC7 PASS: my crops without token returns 401');"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/user/my-crops/overview"
+					}
+				},
+				{
+					"name": "EC8: Admin accesses user endpoint → 200",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Admin can access user endpoints (200)', function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"console.log('EC8 PASS: admin can access user endpoints');"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{adminToken}}" }
+						],
+						"url": "{{baseUrl}}/api/user/plant-recommendation/questions"
+					}
+				},
+				{
+					"name": "EC9: Home without token → 401",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"pm.test('Returns 401', function () {",
+									"    pm.response.to.have.status(401);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": "{{baseUrl}}/api/user/home"
+					}
+				}
+			]
+		}
+	]
+}

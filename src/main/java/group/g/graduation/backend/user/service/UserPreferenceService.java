@@ -6,6 +6,8 @@ import group.g.graduation.backend.Security.util.SecurityUtils;
 import group.g.graduation.backend.common.model.UserPreference;
 import group.g.graduation.backend.common.repository.UserPreferenceRepository;
 import group.g.graduation.backend.user.dto.preference.LocationResponse;
+import group.g.graduation.backend.user.dto.preference.NotificationSettingsRequest;
+import group.g.graduation.backend.user.dto.preference.NotificationSettingsResponse;
 import group.g.graduation.backend.user.dto.preference.PalestineCityInfo;
 import group.g.graduation.backend.user.dto.preference.SetLocationRequest;
 import lombok.RequiredArgsConstructor;
@@ -223,6 +225,88 @@ public class UserPreferenceService {
                 .findFirst()
                 .orElse(null);
     }
+
+    // ═══════════════════════════════════════════════
+    // إعدادات الإشعارات
+    // ═══════════════════════════════════════════════
+
+    /**
+     * تحديث إعدادات الإشعارات للمستخدم
+     */
+    @Transactional
+    public NotificationSettingsResponse updateNotificationSettings(NotificationSettingsRequest request) {
+        User user = getCurrentUser();
+        UserPreference pref = userPreferenceRepository.findByUserId(user.getId())
+                .orElse(UserPreference.builder().user(user).build());
+
+        if (request.getNotificationEnabled() != null) {
+            pref.setNotificationEnabled(request.getNotificationEnabled());
+        }
+        if (request.getPushEnabled() != null) {
+            pref.setPushEnabled(request.getPushEnabled());
+        }
+        if (request.getFcmToken() != null) {
+            pref.setFcmToken(request.getFcmToken());
+        }
+        if (request.getMorningReminderTime() != null) {
+            pref.setMorningReminderTime(request.getMorningReminderTime());
+        }
+        if (request.getEveningReminderTime() != null) {
+            pref.setEveningReminderTime(request.getEveningReminderTime());
+        }
+        if (request.getLanguage() != null) {
+            pref.setLanguage(request.getLanguage());
+        }
+
+        userPreferenceRepository.save(pref);
+        log.info("⚙️ User {} updated notification settings", user.getEmail());
+
+        return mapToSettingsResponse(pref);
+    }
+
+    /**
+     * جلب إعدادات الإشعارات الحالية
+     */
+    @Transactional(readOnly = true)
+    public NotificationSettingsResponse getNotificationSettings() {
+        User user = getCurrentUser();
+        UserPreference pref = userPreferenceRepository.findByUserId(user.getId())
+                .orElse(UserPreference.builder()
+                        .user(user)
+                        .notificationEnabled(true)
+                        .pushEnabled(true)
+                        .language("ar")
+                        .build());
+
+        return mapToSettingsResponse(pref);
+    }
+
+    /**
+     * تحديث FCM Token فقط (يُستدعى عند كل فتح للتطبيق)
+     */
+    @Transactional
+    public void updateFcmToken(String fcmToken) {
+        User user = getCurrentUser();
+        UserPreference pref = userPreferenceRepository.findByUserId(user.getId())
+                .orElse(UserPreference.builder().user(user).build());
+
+        pref.setFcmToken(fcmToken);
+        userPreferenceRepository.save(pref);
+        log.debug("📱 FCM token updated for user {}", user.getEmail());
+    }
+
+    private NotificationSettingsResponse mapToSettingsResponse(UserPreference pref) {
+        return NotificationSettingsResponse.builder()
+                .notificationEnabled(pref.getNotificationEnabled() != null ? pref.getNotificationEnabled() : true)
+                .pushEnabled(pref.getPushEnabled() != null ? pref.getPushEnabled() : true)
+                .hasFcmToken(pref.getFcmToken() != null && !pref.getFcmToken().isEmpty())
+                .morningReminderTime(pref.getMorningReminderTime())
+                .eveningReminderTime(pref.getEveningReminderTime())
+                .language(pref.getLanguage() != null ? pref.getLanguage() : "ar")
+                .build();
+    }
+
+    // ===== Helper Methods =====
 
     /**
      * جلب المستخدم الحالي من الـ Security Context

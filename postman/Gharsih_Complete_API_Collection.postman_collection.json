@@ -1,0 +1,652 @@
+{
+  "info": {
+    "_postman_id": "gharsih-complete-api-2026",
+    "name": "Gharsih (غرسي) - Complete API Collection",
+    "description": "مجموعة كاملة لكل APIs نظام غرسي - 250 endpoint\n\n📌 خطوات الاستخدام:\n1. شغّل السيرفر على localhost:8081\n2. شغّل Login request أولاً (يحفظ التوكن تلقائياً)\n3. جرّب أي endpoint — التوكن يتم إرساله تلقائياً\n\n🔑 المتغيرات:\n- baseUrl: عنوان السيرفر\n- token: JWT token (يتحدث تلقائياً بعد Login)\n- adminToken: توكن الأدمن\n- plantId, userPlantId, taskId: IDs ديناميكية",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8081", "type": "string" },
+    { "key": "token", "value": "", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "plantId", "value": "1", "type": "string" },
+    { "key": "userPlantId", "value": "1", "type": "string" },
+    { "key": "taskId", "value": "1", "type": "string" },
+    { "key": "userId", "value": "1", "type": "string" },
+    { "key": "sessionId", "value": "1", "type": "string" },
+    { "key": "questionId", "value": "1", "type": "string" },
+    { "key": "optionId", "value": "1", "type": "string" },
+    { "key": "roleId", "value": "1", "type": "string" },
+    { "key": "permissionId", "value": "1", "type": "string" },
+    { "key": "monthId", "value": "1", "type": "string" },
+    { "key": "notificationId", "value": "1", "type": "string" },
+    { "key": "imageId", "value": "1", "type": "string" },
+    { "key": "taskTypeId", "value": "1", "type": "string" },
+    { "key": "refreshToken", "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "🔐 1. Auth (تسجيل دخول/خروج)",
+      "description": "تسجيل الدخول، إنشاء حساب، تحديث التوكن، تسجيل الخروج",
+      "item": [
+        {
+          "name": "Register - إنشاء حساب",
+          "event": [{ "listen": "test", "script": { "exec": ["var jsonData = pm.response.json();", "if(jsonData.token) { pm.collectionVariables.set('token', jsonData.token); }", "if(jsonData.refreshToken) { pm.collectionVariables.set('refreshToken', jsonData.refreshToken); }", "pm.test('Status 200/201', function(){ pm.expect(pm.response.code).to.be.oneOf([200,201]); });"], "type": "text/javascript" }}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"مستخدم تجريبي\",\n  \"email\": \"test@example.com\",\n  \"password\": \"Test@12345\"\n}" }, "url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api","auth","register"] } }
+        },
+        {
+          "name": "Login - تسجيل دخول (User)",
+          "event": [{ "listen": "test", "script": { "exec": ["var jsonData = pm.response.json();", "if(jsonData.token) { pm.collectionVariables.set('token', jsonData.token); }", "if(jsonData.refreshToken) { pm.collectionVariables.set('refreshToken', jsonData.refreshToken); }", "pm.test('Login success', function(){ pm.expect(pm.response.code).to.equal(200); });"], "type": "text/javascript" }}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Test@12345\"\n}" }, "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] } }
+        },
+        {
+          "name": "Login - تسجيل دخول (Admin)",
+          "event": [{ "listen": "test", "script": { "exec": ["var jsonData = pm.response.json();", "if(jsonData.token) { pm.collectionVariables.set('adminToken', jsonData.token); pm.collectionVariables.set('token', jsonData.token); }", "if(jsonData.refreshToken) { pm.collectionVariables.set('refreshToken', jsonData.refreshToken); }", "pm.test('Admin login success', function(){ pm.expect(pm.response.code).to.equal(200); });"], "type": "text/javascript" }}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@gharsih.ps\",\n  \"password\": \"admin123\"\n}" }, "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] } }
+        },
+        {
+          "name": "Refresh Token - تحديث التوكن",
+          "event": [{ "listen": "test", "script": { "exec": ["var jsonData = pm.response.json();", "if(jsonData.token) { pm.collectionVariables.set('token', jsonData.token); }", "if(jsonData.refreshToken) { pm.collectionVariables.set('refreshToken', jsonData.refreshToken); }"], "type": "text/javascript" }}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" }, "url": { "raw": "{{baseUrl}}/api/auth/refresh-token", "host": ["{{baseUrl}}"], "path": ["api","auth","refresh-token"] } }
+        },
+        {
+          "name": "Logout - تسجيل خروج",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" }, "url": { "raw": "{{baseUrl}}/api/auth/logout", "host": ["{{baseUrl}}"], "path": ["api","auth","logout"] } }
+        },
+        {
+          "name": "Forgot Password - نسيت كلمة المرور",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"email\": \"test@example.com\"\n}" }, "url": { "raw": "{{baseUrl}}/api/auth/forgot-password", "host": ["{{baseUrl}}"], "path": ["api","auth","forgot-password"] } }
+        },
+        {
+          "name": "Reset Password - إعادة تعيين كلمة المرور",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"token\": \"RESET_TOKEN_HERE\",\n  \"newPassword\": \"NewPass@123\"\n}" }, "url": { "raw": "{{baseUrl}}/api/auth/reset-password", "host": ["{{baseUrl}}"], "path": ["api","auth","reset-password"] } }
+        },
+        {
+          "name": "Validate Reset Token",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/auth/validate-reset-token?token=RESET_TOKEN", "host": ["{{baseUrl}}"], "path": ["api","auth","validate-reset-token"], "query": [{"key":"token","value":"RESET_TOKEN"}] } }
+        },
+        {
+          "name": "Reset Token Info",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/auth/reset-token-info?token=RESET_TOKEN", "host": ["{{baseUrl}}"], "path": ["api","auth","reset-token-info"], "query": [{"key":"token","value":"RESET_TOKEN"}] } }
+        },
+        {
+          "name": "Admin Get Reset Tokens By User",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/auth/admin/reset-tokens/user/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","auth","admin","reset-tokens","user","{{userId}}"] } }
+        },
+        {
+          "name": "OAuth2 URLs",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/auth/oauth2/urls", "host": ["{{baseUrl}}"], "path": ["api","auth","oauth2","urls"] } }
+        },
+        {
+          "name": "OAuth2 Status",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/auth/oauth2/status", "host": ["{{baseUrl}}"], "path": ["api","auth","oauth2","status"] } }
+        }
+      ]
+    },
+    {
+      "name": "👤 2. Users (إدارة المستخدمين)",
+      "description": "الملف الشخصي، تغيير كلمة المرور، إدارة المستخدمين",
+      "item": [
+        {
+          "name": "Get Current User - بياناتي",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/users/me", "host": ["{{baseUrl}}"], "path": ["api","users","me"] } }
+        },
+        {
+          "name": "Update Current User - تعديل بياناتي",
+          "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"اسم محدث\",\n  \"email\": \"test@example.com\"\n}" }, "url": { "raw": "{{baseUrl}}/api/users/me", "host": ["{{baseUrl}}"], "path": ["api","users","me"] } }
+        },
+        {
+          "name": "Change Password - تغيير كلمة المرور",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"currentPassword\": \"Test@12345\",\n  \"newPassword\": \"NewTest@12345\",\n  \"confirmPassword\": \"NewTest@12345\"\n}" }, "url": { "raw": "{{baseUrl}}/api/users/me/change-password", "host": ["{{baseUrl}}"], "path": ["api","users","me","change-password"] } }
+        },
+        {
+          "name": "Get All Users - كل المستخدمين",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/users", "host": ["{{baseUrl}}"], "path": ["api","users"] } }
+        },
+        {
+          "name": "Get User By ID",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","users","{{userId}}"] } }
+        },
+        {
+          "name": "Get User By Email",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/users/email/test@example.com", "host": ["{{baseUrl}}"], "path": ["api","users","email","test@example.com"] } }
+        },
+        {
+          "name": "Create User",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"مستخدم جديد\",\n  \"email\": \"new@example.com\",\n  \"password\": \"Pass@123\"\n}" }, "url": { "raw": "{{baseUrl}}/api/users", "host": ["{{baseUrl}}"], "path": ["api","users"] } }
+        },
+        {
+          "name": "Update User",
+          "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"اسم معدل\",\n  \"email\": \"new@example.com\"\n}" }, "url": { "raw": "{{baseUrl}}/api/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","users","{{userId}}"] } }
+        },
+        {
+          "name": "Delete User",
+          "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/users/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","users","{{userId}}"] } }
+        }
+      ]
+    },
+    {
+      "name": "🔒 3. Sessions (الجلسات)",
+      "item": [
+        { "name": "Get Active Sessions", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/sessions", "host": ["{{baseUrl}}"], "path": ["api","sessions"] } } },
+        { "name": "Get Session Count", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/sessions/count", "host": ["{{baseUrl}}"], "path": ["api","sessions","count"] } } },
+        { "name": "Logout Session", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/sessions/{{sessionId}}", "host": ["{{baseUrl}}"], "path": ["api","sessions","{{sessionId}}"] } } },
+        { "name": "Logout Other Sessions", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/sessions/others", "host": ["{{baseUrl}}"], "path": ["api","sessions","others"] } } },
+        { "name": "Logout All Sessions", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/sessions/all", "host": ["{{baseUrl}}"], "path": ["api","sessions","all"] } } }
+      ]
+    },
+    {
+      "name": "🛡️ 4. Roles & Permissions (الأدوار والصلاحيات)",
+      "item": [
+        {
+          "name": "Roles",
+          "item": [
+            { "name": "Get All Roles", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/roles", "host": ["{{baseUrl}}"], "path": ["api","roles"] } } },
+            { "name": "Get Role By ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/roles/{{roleId}}", "host": ["{{baseUrl}}"], "path": ["api","roles","{{roleId}}"] } } },
+            { "name": "Get Role By Name", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/roles/name/ROLE_USER", "host": ["{{baseUrl}}"], "path": ["api","roles","name","ROLE_USER"] } } },
+            { "name": "Create Role", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"name\": \"ROLE_MODERATOR\",\n  \"description\": \"مشرف\"\n}" }, "url": { "raw": "{{baseUrl}}/api/roles", "host": ["{{baseUrl}}"], "path": ["api","roles"] } } },
+            { "name": "Update Role", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"name\": \"ROLE_MODERATOR\",\n  \"description\": \"مشرف محدث\"\n}" }, "url": { "raw": "{{baseUrl}}/api/roles/{{roleId}}", "host": ["{{baseUrl}}"], "path": ["api","roles","{{roleId}}"] } } },
+            { "name": "Delete Role", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/roles/{{roleId}}", "host": ["{{baseUrl}}"], "path": ["api","roles","{{roleId}}"] } } },
+            { "name": "Get Role Permissions", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/roles/{{roleId}}/permissions", "host": ["{{baseUrl}}"], "path": ["api","roles","{{roleId}}","permissions"] } } },
+            { "name": "Assign Permissions to Role", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "[1, 2, 3]" }, "url": { "raw": "{{baseUrl}}/api/roles/{{roleId}}/permissions", "host": ["{{baseUrl}}"], "path": ["api","roles","{{roleId}}","permissions"] } } },
+            { "name": "Add Permission to Role", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/roles/{{roleId}}/permissions/{{permissionId}}", "host": ["{{baseUrl}}"], "path": ["api","roles","{{roleId}}","permissions","{{permissionId}}"] } } },
+            { "name": "Remove Permission from Role", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/roles/{{roleId}}/permissions/{{permissionId}}", "host": ["{{baseUrl}}"], "path": ["api","roles","{{roleId}}","permissions","{{permissionId}}"] } } },
+            { "name": "Activate Role", "request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/roles/{{roleId}}/activate", "host": ["{{baseUrl}}"], "path": ["api","roles","{{roleId}}","activate"] } } },
+            { "name": "Deactivate Role", "request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/roles/{{roleId}}/deactivate", "host": ["{{baseUrl}}"], "path": ["api","roles","{{roleId}}","deactivate"] } } }
+          ]
+        },
+        {
+          "name": "Permissions",
+          "item": [
+            { "name": "Get All Permissions", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/permissions?includeInactive=false", "host": ["{{baseUrl}}"], "path": ["api","permissions"], "query": [{"key":"includeInactive","value":"false"}] } } },
+            { "name": "Get Permission By ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/permissions/{{permissionId}}", "host": ["{{baseUrl}}"], "path": ["api","permissions","{{permissionId}}"] } } },
+            { "name": "Get Permission By Name", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/permissions/name/READ_PLANTS", "host": ["{{baseUrl}}"], "path": ["api","permissions","name","READ_PLANTS"] } } },
+            { "name": "Get Permissions By Resource", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/permissions/resource/PLANT", "host": ["{{baseUrl}}"], "path": ["api","permissions","resource","PLANT"] } } },
+            { "name": "Search Permissions", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/permissions/search?searchTerm=plant", "host": ["{{baseUrl}}"], "path": ["api","permissions","search"], "query": [{"key":"searchTerm","value":"plant"}] } } },
+            { "name": "Get Unassigned Permissions", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/permissions/unassigned", "host": ["{{baseUrl}}"], "path": ["api","permissions","unassigned"] } } },
+            { "name": "Get Permission Usage", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/permissions/{{permissionId}}/usage", "host": ["{{baseUrl}}"], "path": ["api","permissions","{{permissionId}}","usage"] } } },
+            { "name": "Create Permission", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"name\": \"MANAGE_REPORTS\",\n  \"description\": \"إدارة التقارير\",\n  \"resource\": \"REPORT\",\n  \"action\": \"MANAGE\"\n}" }, "url": { "raw": "{{baseUrl}}/api/permissions", "host": ["{{baseUrl}}"], "path": ["api","permissions"] } } },
+            { "name": "Bulk Create Permissions", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "[\n  {\"name\": \"READ_REPORTS\", \"description\": \"قراءة التقارير\", \"resource\": \"REPORT\", \"action\": \"READ\"},\n  {\"name\": \"DELETE_REPORTS\", \"description\": \"حذف التقارير\", \"resource\": \"REPORT\", \"action\": \"DELETE\"}\n]" }, "url": { "raw": "{{baseUrl}}/api/permissions/bulk", "host": ["{{baseUrl}}"], "path": ["api","permissions","bulk"] } } },
+            { "name": "Update Permission", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"name\": \"MANAGE_REPORTS\",\n  \"description\": \"إدارة التقارير المحدثة\"\n}" }, "url": { "raw": "{{baseUrl}}/api/permissions/{{permissionId}}", "host": ["{{baseUrl}}"], "path": ["api","permissions","{{permissionId}}"] } } },
+            { "name": "Delete Permission", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/permissions/{{permissionId}}", "host": ["{{baseUrl}}"], "path": ["api","permissions","{{permissionId}}"] } } },
+            { "name": "Activate Permission", "request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/permissions/{{permissionId}}/activate", "host": ["{{baseUrl}}"], "path": ["api","permissions","{{permissionId}}","activate"] } } },
+            { "name": "Deactivate Permission", "request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/permissions/{{permissionId}}/deactivate", "host": ["{{baseUrl}}"], "path": ["api","permissions","{{permissionId}}","deactivate"] } } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🏠 5. User Home (الصفحة الرئيسية)",
+      "item": [
+        { "name": "Get Home Page", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/home", "host": ["{{baseUrl}}"], "path": ["api","user","home"] } } },
+        { "name": "Get Weather - الطقس", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/home/weather", "host": ["{{baseUrl}}"], "path": ["api","user","home","weather"] } } },
+        { "name": "Get Daily Quote - اقتباس اليوم", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/home/daily-quote", "host": ["{{baseUrl}}"], "path": ["api","user","home","daily-quote"] } } },
+        { "name": "Get Calendar - التقويم", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/home/calendar", "host": ["{{baseUrl}}"], "path": ["api","user","home","calendar"] } } },
+        { "name": "Get Month Detail - تفاصيل شهر", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/home/calendar/3", "host": ["{{baseUrl}}"], "path": ["api","user","home","calendar","3"] } } }
+      ]
+    },
+    {
+      "name": "🌱 6. My Crops (محاصيلي)",
+      "description": "إدارة نباتات المستخدم: التخطيط، الزراعة، المهام، الحصاد",
+      "item": [
+        { "name": "Overview - نظرة عامة", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/my-crops/overview", "host": ["{{baseUrl}}"], "path": ["api","user","my-crops","overview"] } } },
+        {
+          "name": "Add Plant to Planned - إضافة نبتة",
+          "event": [{ "listen": "test", "script": { "exec": ["var jsonData = pm.response.json();", "if(jsonData.userPlantId) pm.collectionVariables.set('userPlantId', jsonData.userPlantId);", "if(jsonData.id) pm.collectionVariables.set('userPlantId', jsonData.id);"], "type": "text/javascript" }}],
+          "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/user/my-crops/add/{{plantId}}?nickname=نبتتي", "host": ["{{baseUrl}}"], "path": ["api","user","my-crops","add","{{plantId}}"], "query": [{"key":"nickname","value":"نبتتي"}] } }
+        },
+        { "name": "Get Planned List - المخططة", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/my-crops/planned", "host": ["{{baseUrl}}"], "path": ["api","user","my-crops","planned"] } } },
+        { "name": "Get Planted List - المزروعة", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/my-crops/planted", "host": ["{{baseUrl}}"], "path": ["api","user","my-crops","planted"] } } },
+        { "name": "Get Harvested List - المحصودة", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/my-crops/harvested", "host": ["{{baseUrl}}"], "path": ["api","user","my-crops","harvested"] } } },
+        { "name": "Get Planned Detail - تفاصيل مخطط", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/my-crops/planned/{{userPlantId}}", "host": ["{{baseUrl}}"], "path": ["api","user","my-crops","planned","{{userPlantId}}"] } } },
+        { "name": "Get Planting Steps - خطوات الزراعة", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/my-crops/{{userPlantId}}/planting-steps", "host": ["{{baseUrl}}"], "path": ["api","user","my-crops","{{userPlantId}}","planting-steps"] } } },
+        {
+          "name": "Mark as Planted - تم الزراعة",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"userPlantId\": {{userPlantId}},\n  \"plantedDate\": \"2026-02-27\",\n  \"nickname\": \"نبتتي الجميلة\",\n  \"notes\": \"زرعتها في أصيص كبير\"\n}" }, "url": { "raw": "{{baseUrl}}/api/user/my-crops/mark-planted", "host": ["{{baseUrl}}"], "path": ["api","user","my-crops","mark-planted"] } }
+        },
+        { "name": "Planted Overview Tab - نظرة عامة مزروعة", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/my-crops/{{userPlantId}}/overview", "host": ["{{baseUrl}}"], "path": ["api","user","my-crops","{{userPlantId}}","overview"] } } },
+        {
+          "name": "Planted Tasks Tab - مهام النبتة",
+          "event": [{ "listen": "test", "script": { "exec": ["var jsonData = pm.response.json();", "if(jsonData.tasks && jsonData.tasks.length > 0) pm.collectionVariables.set('taskId', jsonData.tasks[0].taskId || jsonData.tasks[0].id);"], "type": "text/javascript" }}],
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/my-crops/{{userPlantId}}/tasks", "host": ["{{baseUrl}}"], "path": ["api","user","my-crops","{{userPlantId}}","tasks"] } }
+        },
+        { "name": "Planted Info Tab - معلومات النبتة", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/my-crops/{{userPlantId}}/info", "host": ["{{baseUrl}}"], "path": ["api","user","my-crops","{{userPlantId}}","info"] } } },
+        {
+          "name": "Task Action - Complete",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"taskId\": {{taskId}},\n  \"action\": \"COMPLETE\"\n}" }, "url": { "raw": "{{baseUrl}}/api/user/my-crops/tasks/action", "host": ["{{baseUrl}}"], "path": ["api","user","my-crops","tasks","action"] } }
+        },
+        {
+          "name": "Task Action - Snooze 1h",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"taskId\": {{taskId}},\n  \"action\": \"SNOOZE_1H\"\n}" }, "url": { "raw": "{{baseUrl}}/api/user/my-crops/tasks/action", "host": ["{{baseUrl}}"], "path": ["api","user","my-crops","tasks","action"] } }
+        },
+        {
+          "name": "Task Action - Snooze Tomorrow",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"taskId\": {{taskId}},\n  \"action\": \"SNOOZE_TOMORROW\"\n}" }, "url": { "raw": "{{baseUrl}}/api/user/my-crops/tasks/action", "host": ["{{baseUrl}}"], "path": ["api","user","my-crops","tasks","action"] } }
+        },
+        { "name": "Harvest Plant - حصاد", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/user/my-crops/{{userPlantId}}/harvest", "host": ["{{baseUrl}}"], "path": ["api","user","my-crops","{{userPlantId}}","harvest"] } } }
+      ]
+    },
+    {
+      "name": "🧠 7. Plant Recommendation (توصيات)",
+      "item": [
+        { "name": "Get Questions - أسئلة التوصية", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/plant-recommendation/questions", "host": ["{{baseUrl}}"], "path": ["api","user","plant-recommendation","questions"] } } },
+        {
+          "name": "Submit Answers - إرسال الأجوبة",
+          "event": [{ "listen": "test", "script": { "exec": ["var jsonData = pm.response.json();", "if(jsonData.sessionId) pm.collectionVariables.set('sessionId', jsonData.sessionId);"], "type": "text/javascript" }}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"answers\": [\n    {\"questionId\": 1, \"selectedOptionId\": 1},\n    {\"questionId\": 2, \"selectedOptionId\": 5},\n    {\"questionId\": 3, \"selectedOptionId\": 9}\n  ],\n  \"latitude\": 32.2211,\n  \"longitude\": 35.2544\n}" }, "url": { "raw": "{{baseUrl}}/api/user/plant-recommendation/submit-answers", "host": ["{{baseUrl}}"], "path": ["api","user","plant-recommendation","submit-answers"] } }
+        },
+        { "name": "Get Recommendations - النتائج", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/plant-recommendation/recommendations/{{sessionId}}", "host": ["{{baseUrl}}"], "path": ["api","user","plant-recommendation","recommendations","{{sessionId}}"] } } },
+        { "name": "Get Recommendation Detail", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/plant-recommendation/recommendations/{{sessionId}}/plant/{{plantId}}", "host": ["{{baseUrl}}"], "path": ["api","user","plant-recommendation","recommendations","{{sessionId}}","plant","{{plantId}}"] } } },
+        {
+          "name": "Select Plant - اختيار نبتة",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"sessionId\": \"{{sessionId}}\",\n  \"plantId\": {{plantId}},\n  \"nickname\": \"نبتتي المختارة\"\n}" }, "url": { "raw": "{{baseUrl}}/api/user/plant-recommendation/select", "host": ["{{baseUrl}}"], "path": ["api","user","plant-recommendation","select"] } }
+        }
+      ]
+    },
+    {
+      "name": "🔔 8. User Notifications (إشعاراتي)",
+      "item": [
+        { "name": "Get All My Notifications", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/notifications", "host": ["{{baseUrl}}"], "path": ["api","user","notifications"] } } },
+        { "name": "Get Unread Notifications", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/notifications/unread", "host": ["{{baseUrl}}"], "path": ["api","user","notifications","unread"] } } },
+        { "name": "Get Notifications By Type", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/notifications/type/WATERING_REMINDER", "host": ["{{baseUrl}}"], "path": ["api","user","notifications","type","WATERING_REMINDER"] } } },
+        { "name": "Get Unread Count - عدد غير المقروءة", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/notifications/unread-count", "host": ["{{baseUrl}}"], "path": ["api","user","notifications","unread-count"] } } },
+        { "name": "Mark As Read - تحديد كمقروء", "request": { "method": "PUT", "url": { "raw": "{{baseUrl}}/api/user/notifications/{{notificationId}}/read", "host": ["{{baseUrl}}"], "path": ["api","user","notifications","{{notificationId}}","read"] } } },
+        { "name": "Mark All As Read - الكل مقروء", "request": { "method": "PUT", "url": { "raw": "{{baseUrl}}/api/user/notifications/read-all", "host": ["{{baseUrl}}"], "path": ["api","user","notifications","read-all"] } } },
+        { "name": "Delete Notification", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/user/notifications/{{notificationId}}", "host": ["{{baseUrl}}"], "path": ["api","user","notifications","{{notificationId}}"] } } }
+      ]
+    },
+    {
+      "name": "⚙️ 9. User Preferences (التفضيلات)",
+      "item": [
+        { "name": "Get Available Cities - المدن", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/preferences/cities", "host": ["{{baseUrl}}"], "path": ["api","user","preferences","cities"] } } },
+        {
+          "name": "Set Location - تحديد الموقع",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"city\": \"نابلس\",\n  \"latitude\": 32.2211,\n  \"longitude\": 35.2544\n}" }, "url": { "raw": "{{baseUrl}}/api/user/preferences/location", "host": ["{{baseUrl}}"], "path": ["api","user","preferences","location"] } }
+        },
+        { "name": "Get Location - موقعي", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/preferences/location", "host": ["{{baseUrl}}"], "path": ["api","user","preferences","location"] } } },
+        {
+          "name": "Update Notification Settings",
+          "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"notificationEnabled\": true,\n  \"pushEnabled\": true,\n  \"morningReminderTime\": \"07:00\",\n  \"eveningReminderTime\": \"19:00\",\n  \"language\": \"ar\"\n}" }, "url": { "raw": "{{baseUrl}}/api/user/preferences/notifications", "host": ["{{baseUrl}}"], "path": ["api","user","preferences","notifications"] } }
+        },
+        { "name": "Get Notification Settings", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/user/preferences/notifications", "host": ["{{baseUrl}}"], "path": ["api","user","preferences","notifications"] } } },
+        {
+          "name": "Update FCM Token",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"fcmToken\": \"firebase-token-from-mobile-app\"\n}" }, "url": { "raw": "{{baseUrl}}/api/user/preferences/fcm-token", "host": ["{{baseUrl}}"], "path": ["api","user","preferences","fcm-token"] } }
+        }
+      ]
+    },
+    {
+      "name": "🌿 10. Admin Plants (إدارة النباتات)",
+      "description": "CRUD نباتات - يحتاج توكن أدمن",
+      "auth": { "type": "bearer", "bearer": [{"key":"token","value":"{{adminToken}}"}] },
+      "item": [
+        {
+          "name": "Create Plant - إنشاء نبتة",
+          "event": [{ "listen": "test", "script": { "exec": ["var jsonData = pm.response.json();", "if(jsonData.id) pm.collectionVariables.set('plantId', jsonData.id);"], "type": "text/javascript" }}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"nameAr\": \"نعناع\",\n  \"nameEn\": \"Mint\",\n  \"nameScientific\": \"Mentha\",\n  \"shortDescriptionAr\": \"عشبة عطرية شائعة\",\n  \"shortDescriptionEn\": \"Common aromatic herb\",\n  \"lightInfoAr\": \"ضوء شمس جزئي إلى كامل\",\n  \"lightInfoEn\": \"Partial to full sun\",\n  \"soilInfoAr\": \"تربة رطبة وغنية\",\n  \"soilInfoEn\": \"Moist, rich soil\",\n  \"wateringInfoAr\": \"ري منتظم - كل 2-3 أيام\",\n  \"wateringInfoEn\": \"Regular watering - every 2-3 days\",\n  \"wateringIntervalDays\": 3,\n  \"careInfoAr\": \"سهل العناية، ينمو بسرعة\",\n  \"careInfoEn\": \"Easy care, grows quickly\",\n  \"harvestInfoAr\": \"احصد الأوراق عند الحاجة\",\n  \"harvestInfoEn\": \"Harvest leaves as needed\",\n  \"usesInfoAr\": \"شاي، طبخ، علاج\",\n  \"usesInfoEn\": \"Tea, cooking, remedies\",\n  \"plantingStepsAr\": \"1. حضر التربة\\n2. ازرع البذور\\n3. اسقي بانتظام\",\n  \"plantingStepsEn\": \"1. Prepare soil\\n2. Plant seeds\\n3. Water regularly\",\n  \"spacingCm\": 20,\n  \"daysToHarvest\": 60,\n  \"germinationDays\": 7,\n  \"minTemp\": 15,\n  \"maxTemp\": 35,\n  \"difficultyLevel\": \"EASY\",\n  \"category\": \"AROMATIC_HERBS\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/plants", "host": ["{{baseUrl}}"], "path": ["api","admin","plants"] } }
+        },
+        { "name": "Get All Plants", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/plants?page=0&size=10&sortBy=id&sortDir=desc", "host": ["{{baseUrl}}"], "path": ["api","admin","plants"], "query": [{"key":"page","value":"0"},{"key":"size","value":"10"},{"key":"sortBy","value":"id"},{"key":"sortDir","value":"desc"}] } } },
+        { "name": "Get Plant By ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","plants","{{plantId}}"] } } },
+        { "name": "Search Plants", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/plants/search?q=نعناع&page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","admin","plants","search"], "query": [{"key":"q","value":"نعناع"},{"key":"page","value":"0"},{"key":"size","value":"10"}] } } },
+        { "name": "Get Plants By Category", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/plants/category/AROMATIC_HERBS?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","admin","plants","category","AROMATIC_HERBS"], "query": [{"key":"page","value":"0"},{"key":"size","value":"10"}] } } },
+        {
+          "name": "Update Plant",
+          "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"nameAr\": \"نعناع محدث\",\n  \"nameEn\": \"Updated Mint\",\n  \"wateringIntervalDays\": 2\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","plants","{{plantId}}"] } }
+        },
+        {
+          "name": "Update Planting Video",
+          "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"plantingVideoUrl\": \"https://youtube.com/watch?v=example\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}/video", "host": ["{{baseUrl}}"], "path": ["api","admin","plants","{{plantId}}","video"] } }
+        },
+        { "name": "Delete Plant", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","plants","{{plantId}}"] } } }
+      ]
+    },
+    {
+      "name": "🖼️ 11. Admin Plant Images (صور النباتات)",
+      "auth": { "type": "bearer", "bearer": [{"key":"token","value":"{{adminToken}}"}] },
+      "item": [
+        { "name": "Get Plant Images", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}/images", "host": ["{{baseUrl}}"], "path": ["api","admin","plants","{{plantId}}","images"] } } },
+        {
+          "name": "Add Image By URL",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"imageUrl\": \"https://example.com/mint.jpg\",\n  \"altTextAr\": \"صورة نعناع\",\n  \"altTextEn\": \"Mint photo\",\n  \"isPrimary\": true,\n  \"displayOrder\": 1\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}/images", "host": ["{{baseUrl}}"], "path": ["api","admin","plants","{{plantId}}","images"] } }
+        },
+        {
+          "name": "Upload Image File",
+          "request": { "method": "POST", "body": { "mode": "formdata", "formdata": [{"key":"file","type":"file","src":""},{"key":"altTextAr","value":"صورة نبتة","type":"text"},{"key":"altTextEn","value":"Plant photo","type":"text"},{"key":"isPrimary","value":"false","type":"text"},{"key":"displayOrder","value":"1","type":"text"}] }, "url": { "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}/images/upload", "host": ["{{baseUrl}}"], "path": ["api","admin","plants","{{plantId}}","images","upload"] } }
+        },
+        {
+          "name": "Bulk Upload Images",
+          "request": { "method": "POST", "body": { "mode": "formdata", "formdata": [{"key":"files","type":"file","src":""},{"key":"files","type":"file","src":""}] }, "url": { "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}/images/bulk", "host": ["{{baseUrl}}"], "path": ["api","admin","plants","{{plantId}}","images","bulk"] } }
+        },
+        { "name": "Set Primary Image", "request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}/images/{{imageId}}/set-primary", "host": ["{{baseUrl}}"], "path": ["api","admin","plants","{{plantId}}","images","{{imageId}}","set-primary"] } } },
+        {
+          "name": "Update Alt Text",
+          "request": { "method": "PATCH", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"altTextAr\": \"وصف محدث\",\n  \"altTextEn\": \"Updated description\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}/images/{{imageId}}/alt-text", "host": ["{{baseUrl}}"], "path": ["api","admin","plants","{{plantId}}","images","{{imageId}}","alt-text"] } }
+        },
+        {
+          "name": "Reorder Images",
+          "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "[1, 2, 3]" }, "url": { "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}/images/reorder", "host": ["{{baseUrl}}"], "path": ["api","admin","plants","{{plantId}}","images","reorder"] } }
+        },
+        { "name": "Delete Image", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}/images/{{imageId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","plants","{{plantId}}","images","{{imageId}}"] } } }
+      ]
+    },
+    {
+      "name": "❓ 12. Admin Questions (أسئلة التوصية)",
+      "auth": { "type": "bearer", "bearer": [{"key":"token","value":"{{adminToken}}"}] },
+      "item": [
+        { "name": "Get All Questions", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/planting-questions", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions"] } } },
+        { "name": "Get All with Options", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/with-options", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","with-options"] } } },
+        { "name": "Get Active Questions", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/active", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","active"] } } },
+        { "name": "Get Active with Options", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/active/with-options", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","active","with-options"] } } },
+        { "name": "Get Question By ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/{{questionId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","{{questionId}}"] } } },
+        { "name": "Get Question By Key", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/key/sunlight_level", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","key","sunlight_level"] } } },
+        {
+          "name": "Create Question with Options",
+          "event": [{ "listen": "test", "script": { "exec": ["var jsonData = pm.response.json();", "if(jsonData.id) pm.collectionVariables.set('questionId', jsonData.id);"], "type": "text/javascript" }}],
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"questionTextAr\": \"كم ساعة شمس يحصل عليها مكانك؟\",\n  \"questionTextEn\": \"How many hours of sun does your spot get?\",\n  \"questionKey\": \"sunlight_hours\",\n  \"questionType\": \"SINGLE_CHOICE\",\n  \"displayOrder\": 1,\n  \"isActive\": true,\n  \"isRequired\": true,\n  \"options\": [\n    {\"optionTextAr\": \"أقل من 3 ساعات\", \"optionTextEn\": \"Less than 3 hours\", \"optionValue\": \"low\", \"displayOrder\": 1},\n    {\"optionTextAr\": \"3-6 ساعات\", \"optionTextEn\": \"3-6 hours\", \"optionValue\": \"medium\", \"displayOrder\": 2},\n    {\"optionTextAr\": \"أكثر من 6 ساعات\", \"optionTextEn\": \"More than 6 hours\", \"optionValue\": \"high\", \"displayOrder\": 3}\n  ]\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/with-options", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","with-options"] } }
+        },
+        {
+          "name": "Create Question Only",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"questionTextAr\": \"هل عندك حديقة؟\",\n  \"questionTextEn\": \"Do you have a garden?\",\n  \"questionKey\": \"has_garden\",\n  \"questionType\": \"SINGLE_CHOICE\",\n  \"displayOrder\": 5,\n  \"isActive\": true,\n  \"isRequired\": false\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/planting-questions", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions"] } }
+        },
+        { "name": "Update Question", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"questionTextAr\": \"سؤال محدث\",\n  \"questionTextEn\": \"Updated question\",\n  \"isActive\": true\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/{{questionId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","{{questionId}}"] } } },
+        { "name": "Toggle Question Active", "request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/{{questionId}}/toggle-active", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","{{questionId}}","toggle-active"] } } },
+        { "name": "Reorder Questions", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "[1, 2, 3]" }, "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/reorder", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","reorder"] } } },
+        { "name": "Get Question Stats", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/stats", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","stats"] } } },
+        { "name": "Delete Question", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/{{questionId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","{{questionId}}"] } } },
+        {
+          "name": "Options",
+          "item": [
+            { "name": "Get Options By Question", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/{{questionId}}/options", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","{{questionId}}","options"] } } },
+            { "name": "Get Option By ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/options/{{optionId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","options","{{optionId}}"] } } },
+            {
+              "name": "Create Option",
+              "event": [{ "listen": "test", "script": { "exec": ["var jsonData = pm.response.json();", "if(jsonData.id) pm.collectionVariables.set('optionId', jsonData.id);"], "type": "text/javascript" }}],
+              "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"optionTextAr\": \"خيار جديد\",\n  \"optionTextEn\": \"New option\",\n  \"optionValue\": \"new_val\",\n  \"displayOrder\": 4\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/{{questionId}}/options", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","{{questionId}}","options"] } }
+            },
+            { "name": "Batch Create Options", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "[\n  {\"optionTextAr\": \"خيار أ\", \"optionTextEn\": \"Option A\", \"optionValue\": \"a\", \"displayOrder\": 1},\n  {\"optionTextAr\": \"خيار ب\", \"optionTextEn\": \"Option B\", \"optionValue\": \"b\", \"displayOrder\": 2}\n]" }, "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/{{questionId}}/options/batch", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","{{questionId}}","options","batch"] } } },
+            { "name": "Update Option", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"optionTextAr\": \"خيار محدث\",\n  \"optionTextEn\": \"Updated option\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/options/{{optionId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","options","{{optionId}}"] } } },
+            { "name": "Toggle Option Active", "request": { "method": "PATCH", "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/options/{{optionId}}/toggle-active", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","options","{{optionId}}","toggle-active"] } } },
+            { "name": "Reorder Options", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "[1, 2, 3]" }, "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/{{questionId}}/options/reorder", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","{{questionId}}","options","reorder"] } } },
+            { "name": "Delete Option", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/planting-questions/options/{{optionId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","planting-questions","options","{{optionId}}"] } } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🎯 13. Admin Plant Suitability (ملاءمة النباتات)",
+      "auth": { "type": "bearer", "bearer": [{"key":"token","value":"{{adminToken}}"}] },
+      "item": [
+        { "name": "Get All Suitabilities", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability"] } } },
+        { "name": "Get By ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/1", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","1"] } } },
+        { "name": "Get By Plant", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/plant/{{plantId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","plant","{{plantId}}"] } } },
+        { "name": "Get By Option", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/option/{{optionId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","option","{{optionId}}"] } } },
+        { "name": "Get By Plant+Option", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/plant/{{plantId}}/option/{{optionId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","plant","{{plantId}}","option","{{optionId}}"] } } },
+        {
+          "name": "Create Suitability",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"plantId\": {{plantId}},\n  \"optionId\": {{optionId}},\n  \"suitabilityScore\": 8\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability"] } }
+        },
+        {
+          "name": "Bulk Create Suitabilities",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"plantId\": {{plantId}},\n  \"suitabilities\": [\n    {\"optionId\": 1, \"suitabilityScore\": 9},\n    {\"optionId\": 2, \"suitabilityScore\": 7},\n    {\"optionId\": 3, \"suitabilityScore\": 5}\n  ]\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/bulk", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","bulk"] } }
+        },
+        { "name": "Update Suitability", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"plantId\": {{plantId}},\n  \"optionId\": {{optionId}},\n  \"suitabilityScore\": 9\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/1", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","1"] } } },
+        { "name": "Plant Suitability Stats", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/stats/plant/{{plantId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","stats","plant","{{plantId}}"] } } },
+        { "name": "Plants Average Scores", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/stats/plants-average", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","stats","plants-average"] } } },
+        { "name": "Count By Score Level", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/stats/plant/{{plantId}}/by-level", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","stats","plant","{{plantId}}","by-level"] } } },
+        {
+          "name": "Get Recommendations",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"selectedOptionIds\": [1, 5, 9]\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/recommendations", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","recommendations"] } }
+        },
+        {
+          "name": "Top N Recommendations",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"selectedOptionIds\": [1, 5, 9]\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/recommendations/top/5", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","recommendations","top","5"] } }
+        },
+        { "name": "Initialize Plant Suitabilities", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/initialize/plant/{{plantId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","initialize","plant","{{plantId}}"] } } },
+        { "name": "Copy Suitabilities", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/copy/1/to/2", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","copy","1","to","2"] } } },
+        {
+          "name": "Recommendations for Plant",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"selectedOptionIds\": [1, 5, 9]\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/recommendations/plant/{{plantId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","recommendations","plant","{{plantId}}"] } }
+        },
+        {
+          "name": "Batch Update Plant Suitabilities",
+          "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "[\n  {\"optionId\": 1, \"suitabilityScore\": 9},\n  {\"optionId\": 2, \"suitabilityScore\": 7}\n]" }, "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/plant/{{plantId}}/batch", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","plant","{{plantId}}","batch"] } }
+        },
+        { "name": "Delete Suitability", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/1", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","1"] } } },
+        { "name": "Delete By Plant", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/plant/{{plantId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","plant","{{plantId}}"] } } },
+        { "name": "Delete By Plant+Option", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/plant-suitability/plant/{{plantId}}/option/{{optionId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-suitability","plant","{{plantId}}","option","{{optionId}}"] } } }
+      ]
+    },
+    {
+      "name": "📋 14. Admin Task Types & Plant Tasks",
+      "auth": { "type": "bearer", "bearer": [{"key":"token","value":"{{adminToken}}"}] },
+      "item": [
+        {
+          "name": "Task Types",
+          "item": [
+            { "name": "Get All Task Types", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/task-types", "host": ["{{baseUrl}}"], "path": ["api","admin","task-types"] } } },
+            { "name": "Get Task Type By ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/task-types/{{taskTypeId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","task-types","{{taskTypeId}}"] } } },
+            {
+              "name": "Create Task Type",
+              "event": [{ "listen": "test", "script": { "exec": ["var jsonData = pm.response.json();", "if(jsonData.id) pm.collectionVariables.set('taskTypeId', jsonData.id);"], "type": "text/javascript" }}],
+              "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"nameAr\": \"ري\",\n  \"nameEn\": \"Watering\",\n  \"icon\": \"💧\",\n  \"descriptionAr\": \"سقاية النبات\",\n  \"descriptionEn\": \"Water the plant\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/task-types", "host": ["{{baseUrl}}"], "path": ["api","admin","task-types"] } }
+            },
+            { "name": "Update Task Type", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"nameAr\": \"ري محدث\",\n  \"nameEn\": \"Updated Watering\",\n  \"icon\": \"💧\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/task-types/{{taskTypeId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","task-types","{{taskTypeId}}"] } } },
+            { "name": "Delete Task Type", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/task-types/{{taskTypeId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","task-types","{{taskTypeId}}"] } } }
+          ]
+        },
+        {
+          "name": "Plant Tasks",
+          "item": [
+            { "name": "Get Tasks By Plant", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}/tasks", "host": ["{{baseUrl}}"], "path": ["api","admin","plants","{{plantId}}","tasks"] } } },
+            { "name": "Get Plant Task By ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/plant-tasks/1", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-tasks","1"] } } },
+            { "name": "Get Tasks By Type", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/task-types/{{taskTypeId}}/plant-tasks", "host": ["{{baseUrl}}"], "path": ["api","admin","task-types","{{taskTypeId}}","plant-tasks"] } } },
+            {
+              "name": "Add Task to Plant",
+              "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"taskTypeId\": {{taskTypeId}},\n  \"intervalDays\": 3,\n  \"descriptionAr\": \"اسقي النبتة كل 3 أيام\",\n  \"descriptionEn\": \"Water every 3 days\",\n  \"startDayAfterPlanting\": 0,\n  \"isRecurring\": true\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/plants/{{plantId}}/tasks", "host": ["{{baseUrl}}"], "path": ["api","admin","plants","{{plantId}}","tasks"] } }
+            },
+            { "name": "Update Plant Task", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"intervalDays\": 2,\n  \"descriptionAr\": \"اسقي كل يومين\",\n  \"descriptionEn\": \"Water every 2 days\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/plant-tasks/1", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-tasks","1"] } } },
+            { "name": "Delete Plant Task", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/plant-tasks/1", "host": ["{{baseUrl}}"], "path": ["api","admin","plant-tasks","1"] } } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📅 15. Admin Months & Calendar",
+      "auth": { "type": "bearer", "bearer": [{"key":"token","value":"{{adminToken}}"}] },
+      "item": [
+        {
+          "name": "Months",
+          "item": [
+            { "name": "Get All Months", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/months", "host": ["{{baseUrl}}"], "path": ["api","admin","months"] } } },
+            { "name": "Get Month By ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/months/{{monthId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","months","{{monthId}}"] } } },
+            { "name": "Get Month By Number", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/months/number/3", "host": ["{{baseUrl}}"], "path": ["api","admin","months","number","3"] } } },
+            { "name": "Get Month With Plants", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/months/number/3/with-plants", "host": ["{{baseUrl}}"], "path": ["api","admin","months","number","3","with-plants"] } } },
+            { "name": "Get Months By Season", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/months/season/SPRING", "host": ["{{baseUrl}}"], "path": ["api","admin","months","season","SPRING"] } } },
+            {
+              "name": "Create Month",
+              "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"monthNumber\": 1,\n  \"nameAr\": \"كانون الثاني\",\n  \"nameEn\": \"January\",\n  \"season\": \"WINTER\",\n  \"weatherDescriptionAr\": \"بارد وماطر\",\n  \"weatherDescriptionEn\": \"Cold and rainy\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/months", "host": ["{{baseUrl}}"], "path": ["api","admin","months"] } }
+            },
+            { "name": "Update Month", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"weatherDescriptionAr\": \"وصف محدث\",\n  \"weatherDescriptionEn\": \"Updated description\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/months/{{monthId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","months","{{monthId}}"] } } },
+            { "name": "Delete Month", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/months/{{monthId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","months","{{monthId}}"] } } },
+            { "name": "Get Month-Plant Link By ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/months/month-plants/1", "host": ["{{baseUrl}}"], "path": ["api","admin","months","month-plants","1"] } } },
+            { "name": "Update Month-Plant Link", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"plantingNoteAr\": \"ملاحظة محدثة\",\n  \"plantingNoteEn\": \"Updated note\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/months/month-plants/1", "host": ["{{baseUrl}}"], "path": ["api","admin","months","month-plants","1"] } } },
+            { "name": "Delete Month-Plant Link", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/months/month-plants/1", "host": ["{{baseUrl}}"], "path": ["api","admin","months","month-plants","1"] } } }
+          ]
+        },
+        {
+          "name": "Month-Plant Links (via Months)",
+          "item": [
+            { "name": "Add Plant to Month", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"plantId\": {{plantId}},\n  \"plantingNoteAr\": \"مناسب للزراعة في هذا الشهر\",\n  \"plantingNoteEn\": \"Suitable for planting this month\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/months/number/3/plants", "host": ["{{baseUrl}}"], "path": ["api","admin","months","number","3","plants"] } } },
+            { "name": "Get Plants By Month", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/months/number/3/plants", "host": ["{{baseUrl}}"], "path": ["api","admin","months","number","3","plants"] } } },
+            { "name": "Get Months By Plant", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/months/plants/{{plantId}}/months", "host": ["{{baseUrl}}"], "path": ["api","admin","months","plants","{{plantId}}","months"] } } },
+            { "name": "Add Plant to Multiple Months", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"monthNumbers\": [3, 4, 5],\n  \"plantingNoteAr\": \"مناسب للربيع\",\n  \"plantingNoteEn\": \"Good for spring\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/months/plants/{{plantId}}/bulk-months", "host": ["{{baseUrl}}"], "path": ["api","admin","months","plants","{{plantId}}","bulk-months"] } } },
+            { "name": "Remove Plant from Month", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/months/number/3/plants/{{plantId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","months","number","3","plants","{{plantId}}"] } } }
+          ]
+        },
+        {
+          "name": "Month-Plant Links (dedicated)",
+          "item": [
+            { "name": "Get All MonthPlants", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/month-plants", "host": ["{{baseUrl}}"], "path": ["api","admin","month-plants"] } } },
+            { "name": "Get Plants By Month ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/month-plants/month/{{monthId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","month-plants","month","{{monthId}}"] } } },
+            { "name": "Get Months By Plant ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/month-plants/plant/{{plantId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","month-plants","plant","{{plantId}}"] } } },
+            { "name": "Current Month Plants", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/month-plants/current-month", "host": ["{{baseUrl}}"], "path": ["api","admin","month-plants","current-month"] } } },
+            { "name": "Planting Calendar", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/month-plants/calendar", "host": ["{{baseUrl}}"], "path": ["api","admin","month-plants","calendar"] } } },
+            { "name": "Month-Plant Stats", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/month-plants/stats", "host": ["{{baseUrl}}"], "path": ["api","admin","month-plants","stats"] } } },
+            { "name": "Bulk Add Plants to Month", "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"plantIds\": [1, 2, 3],\n  \"plantingNoteAr\": \"ملاحظة مشتركة\",\n  \"plantingNoteEn\": \"Shared note\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/month-plants/month/{{monthId}}/bulk", "host": ["{{baseUrl}}"], "path": ["api","admin","month-plants","month","{{monthId}}","bulk"] } } },
+            { "name": "Remove All Plants from Month", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/month-plants/month/{{monthId}}/all", "host": ["{{baseUrl}}"], "path": ["api","admin","month-plants","month","{{monthId}}","all"] } } },
+            { "name": "Remove Plant from All Months", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/month-plants/plant/{{plantId}}/all", "host": ["{{baseUrl}}"], "path": ["api","admin","month-plants","plant","{{plantId}}","all"] } } },
+            {
+              "name": "Create MonthPlant (by Month)",
+              "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"plantId\": {{plantId}},\n  \"plantingNoteAr\": \"ملاحظة\",\n  \"plantingNoteEn\": \"Note\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/month-plants/month/{{monthId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","month-plants","month","{{monthId}}"] } }
+            },
+            {
+              "name": "Create MonthPlant (by Plant)",
+              "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"monthIds\": [1, 2, 3],\n  \"plantingNoteAr\": \"ملاحظة\",\n  \"plantingNoteEn\": \"Note\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/month-plants/plant/{{plantId}}/months", "host": ["{{baseUrl}}"], "path": ["api","admin","month-plants","plant","{{plantId}}","months"] } }
+            },
+            { "name": "Get MonthPlant By ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/month-plants/1", "host": ["{{baseUrl}}"], "path": ["api","admin","month-plants","1"] } } },
+            { "name": "Update MonthPlant", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"plantingNoteAr\": \"محدث\",\n  \"plantingNoteEn\": \"Updated\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/month-plants/1", "host": ["{{baseUrl}}"], "path": ["api","admin","month-plants","1"] } } },
+            { "name": "Delete MonthPlant", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/month-plants/1", "host": ["{{baseUrl}}"], "path": ["api","admin","month-plants","1"] } } },
+            { "name": "Delete MonthPlant By Month+Plant", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/month-plants/month/{{monthId}}/plant/{{plantId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","month-plants","month","{{monthId}}","plant","{{plantId}}"] } } }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "💬 16. Admin Quotes (اقتباسات)",
+      "auth": { "type": "bearer", "bearer": [{"key":"token","value":"{{adminToken}}"}] },
+      "item": [
+        { "name": "Get All Quotes", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/quotes?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","admin","quotes"], "query": [{"key":"page","value":"0"},{"key":"size","value":"10"}] } } },
+        { "name": "Get Quote By ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/quotes/1", "host": ["{{baseUrl}}"], "path": ["api","admin","quotes","1"] } } },
+        { "name": "Get By Category", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/quotes/category/GENERAL?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","admin","quotes","category","GENERAL"], "query": [{"key":"page","value":"0"},{"key":"size","value":"10"}] } } },
+        { "name": "Get Active Quotes", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/quotes/active?page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","admin","quotes","active"], "query": [{"key":"page","value":"0"},{"key":"size","value":"10"}] } } },
+        { "name": "Search Quotes", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/quotes/search?q=زراعة&page=0&size=10", "host": ["{{baseUrl}}"], "path": ["api","admin","quotes","search"], "query": [{"key":"q","value":"زراعة"},{"key":"page","value":"0"},{"key":"size","value":"10"}] } } },
+        {
+          "name": "Create Quote",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"textAr\": \"ازرع اليوم لتحصد غداً\",\n  \"textEn\": \"Plant today to harvest tomorrow\",\n  \"authorAr\": \"مثل شعبي\",\n  \"authorEn\": \"Proverb\",\n  \"category\": \"GENERAL\",\n  \"isActive\": true\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/quotes", "host": ["{{baseUrl}}"], "path": ["api","admin","quotes"] } }
+        },
+        { "name": "Update Quote", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"textAr\": \"اقتباس محدث\",\n  \"textEn\": \"Updated quote\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/quotes/1", "host": ["{{baseUrl}}"], "path": ["api","admin","quotes","1"] } } },
+        { "name": "Toggle Quote Status", "request": { "method": "PUT", "url": { "raw": "{{baseUrl}}/api/admin/quotes/1/toggle-status", "host": ["{{baseUrl}}"], "path": ["api","admin","quotes","1","toggle-status"] } } },
+        { "name": "Delete Quote", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/quotes/1", "host": ["{{baseUrl}}"], "path": ["api","admin","quotes","1"] } } }
+      ]
+    },
+    {
+      "name": "🔔 17. Admin Notifications (إشعارات الأدمن)",
+      "auth": { "type": "bearer", "bearer": [{"key":"token","value":"{{adminToken}}"}] },
+      "item": [
+        { "name": "Get All Notifications", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/notifications", "host": ["{{baseUrl}}"], "path": ["api","admin","notifications"] } } },
+        { "name": "Get By ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/notifications/{{notificationId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","notifications","{{notificationId}}"] } } },
+        { "name": "Get By User", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/notifications/user/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","notifications","user","{{userId}}"] } } },
+        { "name": "Unread Count for User", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/notifications/user/{{userId}}/unread-count", "host": ["{{baseUrl}}"], "path": ["api","admin","notifications","user","{{userId}}","unread-count"] } } },
+        { "name": "Notification Stats", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/notifications/stats", "host": ["{{baseUrl}}"], "path": ["api","admin","notifications","stats"] } } },
+        {
+          "name": "Create for User",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"titleAr\": \"إشعار تجريبي\",\n  \"titleEn\": \"Test notification\",\n  \"messageAr\": \"هذه رسالة تجريبية\",\n  \"messageEn\": \"This is a test message\",\n  \"type\": \"GENERAL\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/notifications/user/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","notifications","user","{{userId}}"] } }
+        },
+        {
+          "name": "Broadcast to All",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"titleAr\": \"إشعار عام\",\n  \"titleEn\": \"General announcement\",\n  \"messageAr\": \"رسالة لكل المستخدمين\",\n  \"messageEn\": \"Message to all users\",\n  \"type\": \"GENERAL\",\n  \"targetAudience\": \"all\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/notifications/broadcast", "host": ["{{baseUrl}}"], "path": ["api","admin","notifications","broadcast"] } }
+        },
+        {
+          "name": "Send to All Users",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"titleAr\": \"تحديث النظام\",\n  \"titleEn\": \"System update\",\n  \"messageAr\": \"تم تحديث النظام\",\n  \"messageEn\": \"System updated\",\n  \"type\": \"GENERAL\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/notifications/send-to-all", "host": ["{{baseUrl}}"], "path": ["api","admin","notifications","send-to-all"] } }
+        },
+        {
+          "name": "Send to Active Users",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"titleAr\": \"نصيحة يومية\",\n  \"titleEn\": \"Daily tip\",\n  \"messageAr\": \"اسقي نباتاتك الصباح\",\n  \"messageEn\": \"Water your plants in the morning\",\n  \"type\": \"DAILY_TIP\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/notifications/send-to-active", "host": ["{{baseUrl}}"], "path": ["api","admin","notifications","send-to-active"] } }
+        },
+        { "name": "Update Notification", "request": { "method": "PUT", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"titleAr\": \"عنوان محدث\",\n  \"titleEn\": \"Updated title\",\n  \"messageAr\": \"رسالة محدثة\",\n  \"messageEn\": \"Updated message\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/notifications/{{notificationId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","notifications","{{notificationId}}"] } } },
+        { "name": "Delete Notification", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/notifications/{{notificationId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","notifications","{{notificationId}}"] } } },
+        { "name": "Delete By User", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/notifications/user/{{userId}}", "host": ["{{baseUrl}}"], "path": ["api","admin","notifications","user","{{userId}}"] } } },
+        { "name": "Delete Old (30 days)", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/notifications/old/30", "host": ["{{baseUrl}}"], "path": ["api","admin","notifications","old","30"] } } }
+      ]
+    },
+    {
+      "name": "👥 18. Admin Users (إدارة المستخدمين)",
+      "auth": { "type": "bearer", "bearer": [{"key":"token","value":"{{adminToken}}"}] },
+      "item": [
+        {
+          "name": "Create Admin",
+          "request": { "method": "POST", "header": [{"key":"Content-Type","value":"application/json"}], "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"أدمن جديد\",\n  \"email\": \"newadmin@gharsih.ps\",\n  \"password\": \"Admin@123\"\n}" }, "url": { "raw": "{{baseUrl}}/api/admin/users/create-admin", "host": ["{{baseUrl}}"], "path": ["api","admin","users","create-admin"] } }
+        },
+        { "name": "Promote to Admin", "request": { "method": "PUT", "url": { "raw": "{{baseUrl}}/api/admin/users/{{userId}}/promote", "host": ["{{baseUrl}}"], "path": ["api","admin","users","{{userId}}","promote"] } } },
+        { "name": "Demote from Admin", "request": { "method": "PUT", "url": { "raw": "{{baseUrl}}/api/admin/users/{{userId}}/demote", "host": ["{{baseUrl}}"], "path": ["api","admin","users","{{userId}}","demote"] } } },
+        { "name": "Has Admin?", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/users/has-admin", "host": ["{{baseUrl}}"], "path": ["api","admin","users","has-admin"] } } }
+      ]
+    },
+    {
+      "name": "📊 19. Admin Dashboard (لوحة التحكم)",
+      "auth": { "type": "bearer", "bearer": [{"key":"token","value":"{{adminToken}}"}] },
+      "item": [
+        { "name": "Dashboard Overview", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/dashboard/overview", "host": ["{{baseUrl}}"], "path": ["api","admin","dashboard","overview"] } } },
+        { "name": "All Stats", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/dashboard/all", "host": ["{{baseUrl}}"], "path": ["api","admin","dashboard","all"] } } },
+        { "name": "System Summary", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/dashboard/summary", "host": ["{{baseUrl}}"], "path": ["api","admin","dashboard","summary"] } } },
+        { "name": "User Stats", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/dashboard/users/stats", "host": ["{{baseUrl}}"], "path": ["api","admin","dashboard","users","stats"] } } },
+        { "name": "User Growth", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/dashboard/users/growth", "host": ["{{baseUrl}}"], "path": ["api","admin","dashboard","users","growth"] } } },
+        { "name": "Plant Stats", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/dashboard/plants/stats", "host": ["{{baseUrl}}"], "path": ["api","admin","dashboard","plants","stats"] } } },
+        { "name": "Content Stats", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/dashboard/content/stats", "host": ["{{baseUrl}}"], "path": ["api","admin","dashboard","content","stats"] } } },
+        { "name": "Notification Stats", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/dashboard/notifications/stats", "host": ["{{baseUrl}}"], "path": ["api","admin","dashboard","notifications","stats"] } } }
+      ]
+    },
+    {
+      "name": "📝 20. Admin Audit Logs (سجل المراجعة)",
+      "auth": { "type": "bearer", "bearer": [{"key":"token","value":"{{adminToken}}"}] },
+      "item": [
+        { "name": "Get All Logs", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/audit?page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api","admin","audit"], "query": [{"key":"page","value":"0"},{"key":"size","value":"20"}] } } },
+        { "name": "Get Log By ID", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/audit/1", "host": ["{{baseUrl}}"], "path": ["api","admin","audit","1"] } } },
+        { "name": "Logs By User", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/audit/user/{{userId}}?page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api","admin","audit","user","{{userId}}"], "query": [{"key":"page","value":"0"},{"key":"size","value":"20"}] } } },
+        { "name": "Logs By Action", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/audit/action/CREATE?page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api","admin","audit","action","CREATE"], "query": [{"key":"page","value":"0"},{"key":"size","value":"20"}] } } },
+        { "name": "Logs By Entity Type", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/audit/entity-type/PLANT?page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api","admin","audit","entity-type","PLANT"], "query": [{"key":"page","value":"0"},{"key":"size","value":"20"}] } } },
+        { "name": "Logs By Entity", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/audit/entity/PLANT/1?page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api","admin","audit","entity","PLANT","1"], "query": [{"key":"page","value":"0"},{"key":"size","value":"20"}] } } },
+        { "name": "Logs By Date Range", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/audit/date-range?startDate=2026-01-01T00:00:00Z&endDate=2026-12-31T23:59:59Z&page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api","admin","audit","date-range"], "query": [{"key":"startDate","value":"2026-01-01T00:00:00Z"},{"key":"endDate","value":"2026-12-31T23:59:59Z"},{"key":"page","value":"0"},{"key":"size","value":"20"}] } } },
+        { "name": "Search Logs", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/audit/search?action=CREATE&entityType=PLANT&page=0&size=20", "host": ["{{baseUrl}}"], "path": ["api","admin","audit","search"], "query": [{"key":"action","value":"CREATE"},{"key":"entityType","value":"PLANT"},{"key":"page","value":"0"},{"key":"size","value":"20"}] } } },
+        { "name": "Audit Statistics", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/audit/stats", "host": ["{{baseUrl}}"], "path": ["api","admin","audit","stats"] } } },
+        { "name": "Available Actions", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/audit/actions", "host": ["{{baseUrl}}"], "path": ["api","admin","audit","actions"] } } },
+        { "name": "Available Entity Types", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/audit/entity-types", "host": ["{{baseUrl}}"], "path": ["api","admin","audit","entity-types"] } } },
+        { "name": "Available Statuses", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/audit/statuses", "host": ["{{baseUrl}}"], "path": ["api","admin","audit","statuses"] } } },
+        { "name": "Cleanup Old Logs", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/audit/cleanup?daysToKeep=90", "host": ["{{baseUrl}}"], "path": ["api","admin","audit","cleanup"], "query": [{"key":"daysToKeep","value":"90"}] } } }
+      ]
+    },
+    {
+      "name": "🚦 21. Admin Rate Limiting",
+      "auth": { "type": "bearer", "bearer": [{"key":"token","value":"{{adminToken}}"}] },
+      "item": [
+        { "name": "Get Config", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/rate-limit/config", "host": ["{{baseUrl}}"], "path": ["api","admin","rate-limit","config"] } } },
+        { "name": "Get All Stats", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/rate-limit/stats", "host": ["{{baseUrl}}"], "path": ["api","admin","rate-limit","stats"] } } },
+        { "name": "Get Summary", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/rate-limit/summary", "host": ["{{baseUrl}}"], "path": ["api","admin","rate-limit","summary"] } } },
+        { "name": "Get Stats By Key", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/rate-limit/stats/127.0.0.1", "host": ["{{baseUrl}}"], "path": ["api","admin","rate-limit","stats","127.0.0.1"] } } },
+        { "name": "Clear Stats", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/rate-limit/stats", "host": ["{{baseUrl}}"], "path": ["api","admin","rate-limit","stats"] } } },
+        { "name": "Get Blocked IPs", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/rate-limit/blocked", "host": ["{{baseUrl}}"], "path": ["api","admin","rate-limit","blocked"] } } },
+        { "name": "Block IP", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/admin/rate-limit/block/192.168.1.100", "host": ["{{baseUrl}}"], "path": ["api","admin","rate-limit","block","192.168.1.100"] } } },
+        { "name": "Unblock IP", "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/api/admin/rate-limit/block/192.168.1.100", "host": ["{{baseUrl}}"], "path": ["api","admin","rate-limit","block","192.168.1.100"] } } },
+        { "name": "Reset Rate Limit", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/admin/rate-limit/reset/127.0.0.1", "host": ["{{baseUrl}}"], "path": ["api","admin","rate-limit","reset","127.0.0.1"] } } },
+        { "name": "Test Rate Limit", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/rate-limit/test", "host": ["{{baseUrl}}"], "path": ["api","admin","rate-limit","test"] } } },
+        { "name": "Test Rate Limit For IP", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/admin/rate-limit/test/127.0.0.1", "host": ["{{baseUrl}}"], "path": ["api","admin","rate-limit","test","127.0.0.1"] } } }
+      ]
+    },
+    {
+      "name": "✉️ 22. Email Tests (اختبار الإيميل)",
+      "description": "Dev profile only — اختبار إرسال الإيميلات",
+      "auth": { "type": "bearer", "bearer": [{"key":"token","value":"{{adminToken}}"}] },
+      "item": [
+        { "name": "Test Simple Email", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/admin/email/test/simple?to=test@example.com&subject=Test&message=Hello", "host": ["{{baseUrl}}"], "path": ["api","admin","email","test","simple"], "query": [{"key":"to","value":"test@example.com"},{"key":"subject","value":"Test"},{"key":"message","value":"Hello"}] } } },
+        { "name": "Test Welcome Email", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/admin/email/test/welcome?to=test@example.com&userName=أحمد", "host": ["{{baseUrl}}"], "path": ["api","admin","email","test","welcome"], "query": [{"key":"to","value":"test@example.com"},{"key":"userName","value":"أحمد"}] } } },
+        { "name": "Test Verification Email", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/admin/email/test/verification?to=test@example.com&code=123456&userName=أحمد", "host": ["{{baseUrl}}"], "path": ["api","admin","email","test","verification"], "query": [{"key":"to","value":"test@example.com"},{"key":"code","value":"123456"},{"key":"userName","value":"أحمد"}] } } },
+        { "name": "Test Watering Reminder", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/admin/email/test/watering-reminder?to=test@example.com&userName=أحمد&plantName=نعناع", "host": ["{{baseUrl}}"], "path": ["api","admin","email","test","watering-reminder"], "query": [{"key":"to","value":"test@example.com"},{"key":"userName","value":"أحمد"},{"key":"plantName","value":"نعناع"}] } } },
+        { "name": "Test Password Reset", "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/api/admin/email/test/password-reset?to=test@example.com&userName=أحمد&resetLink=https://gharsih.ps/reset/abc", "host": ["{{baseUrl}}"], "path": ["api","admin","email","test","password-reset"], "query": [{"key":"to","value":"test@example.com"},{"key":"userName","value":"أحمد"},{"key":"resetLink","value":"https://gharsih.ps/reset/abc"}] } } }
+      ]
+    },
+    {
+      "name": "🔧 23. Health & Security",
+      "item": [
+        { "name": "Health Check", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/security/health", "host": ["{{baseUrl}}"], "path": ["api","security","health"] } } },
+        { "name": "List Endpoints", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/api/security/endpoints", "host": ["{{baseUrl}}"], "path": ["api","security","endpoints"] } } },
+        { "name": "Actuator Health", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/actuator/health", "host": ["{{baseUrl}}"], "path": ["actuator","health"] } } },
+        { "name": "Swagger UI", "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/swagger-ui.html", "host": ["{{baseUrl}}"], "path": ["swagger-ui.html"] } } }
+      ]
+    }
+  ]
+}

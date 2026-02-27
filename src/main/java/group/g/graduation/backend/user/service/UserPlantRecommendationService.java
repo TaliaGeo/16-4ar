@@ -19,6 +19,7 @@ import group.g.graduation.backend.Security.model.User;
 import group.g.graduation.backend.Security.repository.UserRepository;
 import group.g.graduation.backend.Security.util.SecurityUtils;
 import group.g.graduation.backend.common.enums.PlantStatus;
+import group.g.graduation.backend.common.model.MonthPlant;
 import group.g.graduation.backend.common.model.Plant;
 import group.g.graduation.backend.common.model.PlantImage;
 import group.g.graduation.backend.common.model.PlantRecommendation;
@@ -26,7 +27,10 @@ import group.g.graduation.backend.common.model.PlantSuitability;
 import group.g.graduation.backend.common.model.PlantingQuestion;
 import group.g.graduation.backend.common.model.QuestionOption;
 import group.g.graduation.backend.common.model.UserPlant;
+import group.g.graduation.backend.common.model.UserPreference;
 import group.g.graduation.backend.common.model.UserQuestionResponse;
+import group.g.graduation.backend.common.repository.MonthPlantRepository;
+import group.g.graduation.backend.common.repository.MonthRepository;
 import group.g.graduation.backend.common.repository.PlantImageRepository;
 import group.g.graduation.backend.common.repository.PlantRecommendationRepository;
 import group.g.graduation.backend.common.repository.PlantRepository;
@@ -34,6 +38,7 @@ import group.g.graduation.backend.common.repository.PlantSuitabilityRepository;
 import group.g.graduation.backend.common.repository.PlantingQuestionRepository;
 import group.g.graduation.backend.common.repository.QuestionOptionRepository;
 import group.g.graduation.backend.common.repository.UserPlantRepository;
+import group.g.graduation.backend.common.repository.UserPreferenceRepository;
 import group.g.graduation.backend.common.repository.UserQuestionResponseRepository;
 import group.g.graduation.backend.user.dto.home.WeatherResponse;
 import group.g.graduation.backend.user.dto.plant.PlantingQuestionsResponse;
@@ -71,6 +76,9 @@ public class UserPlantRecommendationService {
     private final UserPlantRepository userPlantRepository;
     private final UserRepository userRepository;
     private final WeatherService weatherService;
+    private final UserPreferenceRepository userPreferenceRepository;
+    private final MonthRepository monthRepository;
+    private final MonthPlantRepository monthPlantRepository;
 
     // =====================================================
     // 1. جلب الأسئلة - GET /questions
@@ -126,41 +134,85 @@ public class UserPlantRecommendationService {
 
         User currentUser = getCurrentUser();
 
-        // 1. جلب بيانات الطقس والموسم تلقائياً 🌤️
-        WeatherResponse weather = weatherService.getWeather(null, null, null);
-        log.info("🌤️ Current season: {} | Temperature: {}°C", weather.getSeasonEn(), weather.getTemperature());
+        // 1. تحديد موقع اليوزر: GPS من الطلب → موقع محفوظ → الافتراضي 🌍
+        String city = null;
+        Double lat = request.getLatitude();
+        Double lon = request.getLongitude();
+        boolean locationUsed = false;
 
-        // 2. التحقق من الأسئلة الإجبارية
+        if (lat != null && lon != null) {
+            // استخدام GPS المباشر من التطبيق
+            log.info("📍 Using real-time GPS from request: ({}, {})", lat, lon);
+            locationUsed = true;
+        } else {
+            // محاولة جلب الموقع المحفوظ للمستخدم
+            Optional<UserPreference> prefOpt = userPreferenceRepository.findByUserId(currentUser.getId());
+            if (prefOpt.isPresent() && prefOpt.get().getLatitude() != null && prefOpt.get().getLongitude() != null) {
+                UserPreference pref = prefOpt.get();
+                city = pref.getCity();
+                lat = pref.getLatitude();
+                lon = pref.getLongitude();
+                locationUsed = true;
+                log.info("📍 Using user's saved location: {} ({}, {})", city, lat, lon);
+            } else {
+                log.info("📍 No user location set — using default (Nablus)");
+            }
+        }
+
+        // 2. جلب بيانات الطقس بناءً على الموقع الفعلي 🌤️
+        WeatherResponse weather = weatherService.getWeather(city, lat, lon);
+        log.info("🌤️ Weather for {}: season={}, temp={}°C, humidity={}%",
+                weather.getLocationEn(), weather.getSeasonEn(), weather.getTemperature(), weather.getHumidity());
+
+        // 3. تحديد المنطقة المناخية بناءً على الموقع
+        String climateZoneEn = determineClimateZone(lat, lon, weather.getLocationEn());
+        String climateZoneAr = translateClimateZone(climateZoneEn);
+        log.info("🏔️ Climate zone: {} ({})", climateZoneEn, climateZoneAr);
+
+        // 4. التحقق من الأسئلة الإجبارية
         validateRequiredQuestions(request);
 
-        // 2. التحقق من الأسئلة الإجبارية
-        validateRequiredQuestions(request);
-
-        // 3. إضافة بيانات الموسم تلقائياً إذا اختار المستخدم "الموسم الحالي"
+        // 5. إضافة بيانات الموسم تلقائياً إذا اختار المستخدم "الموسم الحالي"
         request = addWeatherInfoToRequest(request, weather);
 
-        // 4. إنشاء جلسة جديدة
+        // 6. إنشاء جلسة جديدة
         String sessionId = generateSessionId();
 
-        // 5. حفظ إجابات اليوزر
+        // 7. حفظ إجابات اليوزر
         List<Long> allSelectedOptionIds = saveUserResponses(currentUser, sessionId, request);
 
-        // 6. حساب الاقتراحات مع مراعاة الموسم
+        // 8. حساب الاقتراحات مع مراعاة الطقس والموسم والموقع
         List<RecommendationListResponse.RecommendedPlant> recommendations =
-                calculateRecommendationsWithWeather(currentUser, sessionId, allSelectedOptionIds, weather);
+                calculateRecommendationsWithWeather(currentUser, sessionId, allSelectedOptionIds, weather, climateZoneEn);
 
-        // 7. بناء ملخص ظروف اليوزر مع معلومات الطقس
+        // 9. بناء ملخص ظروف اليوزر مع معلومات الطقس
         List<String> conditionsSummary = buildConditionsSummaryWithWeather(request, weather);
 
-        log.info("✅ Generated {} recommendations for session {}", recommendations.size(), sessionId);
+        // 10. بناء سياق الطقس للاستجابة
+        RecommendationListResponse.WeatherContext weatherContext = RecommendationListResponse.WeatherContext.builder()
+                .locationAr(weather.getLocationAr())
+                .locationEn(weather.getLocationEn())
+                .temperature(weather.getTemperature())
+                .seasonAr(weather.getSeasonAr())
+                .seasonEn(weather.getSeasonEn())
+                .climateZoneAr(climateZoneAr)
+                .climateZoneEn(climateZoneEn)
+                .locationUsed(locationUsed)
+                .weatherDescriptionAr(weather.getDescriptionAr())
+                .weatherDescriptionEn(weather.getDescriptionEn())
+                .build();
+
+        log.info("✅ Generated {} recommendations for session {} (location: {}, season: {}, zone: {})",
+                recommendations.size(), sessionId, weather.getLocationEn(), weather.getSeasonEn(), climateZoneEn);
 
         return RecommendationListResponse.builder()
                 .sessionId(sessionId)
                 .totalRecommendations(recommendations.size())
-                .summaryAr("رتّبنا المحاصيل حسب مطابقة الظروف. إذا كانت بعض الظروف غير مناسبة، ستظهر \"مناسب مع تعديل\" مع نصائح بسيطة.")
-                .summaryEn("We ranked crops by condition matching. If some conditions don't match, you'll see \"Suitable with adjustment\" with simple tips.")
+                .summaryAr("رتّبنا المحاصيل حسب مطابقة ظروفك وطقس منطقتك. الاقتراحات تأخذ بعين الاعتبار الموسم الحالي ودرجة الحرارة والمنطقة المناخية.")
+                .summaryEn("We ranked crops based on your conditions and local weather. Recommendations consider current season, temperature, and your climate zone.")
                 .userConditionsSummary(conditionsSummary)
                 .recommendations(recommendations)
+                .weatherContext(weatherContext)
                 .build();
     }
 
@@ -934,58 +986,271 @@ public class UserPlantRecommendationService {
     }
     
     /**
-     * حساب الاقتراحات مع مراعاة الطقس والموسم
+     * حساب الاقتراحات مع مراعاة الطقس والموسم والمنطقة المناخية
+     * 
+     * الخوارزمية المحسّنة:
+     * 1. الأساس: نقاط من PlantSuitability (إجابات اليوزر)
+     * 2. مكافأة الموسم: +8% إذا النبتة موجودة في جدول MonthPlant للشهر الحالي
+     * 3. مكافأة الحرارة: +7% إذا درجة الحرارة ضمن مدى النبتة (minTemp-maxTemp)
+     *                     -10% إذا الحرارة خارج المدى تماماً
+     * 4. مكافأة المنطقة: +5% للنباتات المناسبة للمنطقة المناخية
      */
     private List<RecommendationListResponse.RecommendedPlant> calculateRecommendationsWithWeather(
-            User user, String sessionId, List<Long> selectedOptionIds, WeatherResponse weather) {
+            User user, String sessionId, List<Long> selectedOptionIds, WeatherResponse weather, String climateZone) {
         
-        // استخدام نفس الخوارزمية الأساسية
+        // حساب الاقتراحات الأساسية
         List<RecommendationListResponse.RecommendedPlant> recommendations = 
                 calculateRecommendations(user, sessionId, selectedOptionIds);
-                
-        // تحسين النتائج حسب الموسم
+        
+        // الشهر الحالي (للبحث في month_plants)
+        int currentMonth = LocalDate.now().getMonthValue();
+        
+        // جلب كل النباتات المناسبة للشهر الحالي من MonthPlant
+        Set<Long> monthPlantIds = getPlantIdsForMonth(currentMonth);
+        log.info("📅 Month {} has {} plants in MonthPlant table", currentMonth, monthPlantIds.size());
+        
+        // تطبيق المكافآت الذكية
         return recommendations.stream()
-                .map(rec -> applySeasonalBonus(rec, weather))
+                .map(rec -> applySmartWeatherBonus(rec, weather, climateZone, monthPlantIds))
                 .sorted((a, b) -> Double.compare(b.getMatchPercentage(), a.getMatchPercentage()))
                 .collect(Collectors.toList());
     }
     
     /**
-     * تطبيق مكافأة موسمية للنباتات
+     * جلب معرّفات النباتات المناسبة لشهر معين من جدول MonthPlant
      */
-    private RecommendationListResponse.RecommendedPlant applySeasonalBonus(
-            RecommendationListResponse.RecommendedPlant plant, WeatherResponse weather) {
+    private Set<Long> getPlantIdsForMonth(int monthNumber) {
+        try {
+            Optional<group.g.graduation.backend.common.model.Month> monthOpt = monthRepository.findByMonthNumber(monthNumber);
+            if (monthOpt.isPresent()) {
+                List<MonthPlant> monthPlants = monthPlantRepository.findByMonthId(monthOpt.get().getId());
+                return monthPlants.stream()
+                        .map(mp -> mp.getPlant().getId())
+                        .collect(Collectors.toSet());
+            }
+        } catch (Exception e) {
+            log.warn("⚠️ Failed to load month plants for month {}: {}", monthNumber, e.getMessage());
+        }
+        return Collections.emptySet();
+    }
+    
+    /**
+     * تطبيق مكافآت ذكية حسب الطقس والموسم والمنطقة
+     * 
+     * المكافآت:
+     * - الموسم (MonthPlant):  +8%  إذا النبتة في جدول الشهر الحالي
+     * - الحرارة:              +7%  إذا درجة الحرارة ضمن minTemp–maxTemp
+     *                         -10% إذا الحرارة خارج المدى بأكثر من 10 درجات
+     *                         -5%  إذا الحرارة خارج المدى بأقل من 10 درجات
+     * - المنطقة المناخية:     +5%  للنباتات المناسبة لنوع المنطقة
+     */
+    private RecommendationListResponse.RecommendedPlant applySmartWeatherBonus(
+            RecommendationListResponse.RecommendedPlant rec,
+            WeatherResponse weather, String climateZone, Set<Long> monthPlantIds) {
         
-        double currentMatch = plant.getMatchPercentage();
-        double bonus = 0.0;
+        double currentMatch = rec.getMatchPercentage();
+        double totalBonus = 0.0;
+        boolean seasonalMatch = false;
+        StringBuilder noteAr = new StringBuilder();
+        StringBuilder noteEn = new StringBuilder();
         
-        // مكافآت حسب الموسم والنبات
-        String season = weather.getSeasonEn().toLowerCase();
-        String plantName = plant.getNameEn().toLowerCase();
+        Plant plant = plantRepository.findById(rec.getPlantId()).orElse(null);
+        if (plant == null) return rec;
         
-        // نباتات مناسبة للفصول المختلفة
-        if (season.equals("spring") && (plantName.contains("mint") || plantName.contains("basil") || plantName.contains("parsley"))) {
-            bonus = 10.0; // مكافأة الربيع
-        } else if (season.equals("summer") && (plantName.contains("tomato") || plantName.contains("pepper") || plantName.contains("cucumber"))) {
-            bonus = 10.0; // مكافأة الصيف
-        } else if (season.equals("autumn") && (plantName.contains("lettuce") || plantName.contains("spinach") || plantName.contains("kale"))) {
-            bonus = 10.0; // مكافأة الخريف
-        } else if (season.equals("winter") && (plantName.contains("rosemary") || plantName.contains("thyme") || plantName.contains("sage"))) {
-            bonus = 10.0; // مكافأة الشتاء
+        // ─── 1. مكافأة الموسم من MonthPlant (data-driven) ───
+        if (monthPlantIds.contains(rec.getPlantId())) {
+            totalBonus += 8.0;
+            seasonalMatch = true;
+            noteAr.append("✅ مناسب للزراعة في ").append(weather.getSeasonAr()).append(" • ");
+            noteEn.append("✅ Suitable for planting in ").append(weather.getSeasonEn()).append(" • ");
+            log.debug("🌿 Seasonal bonus +8% for {} (in MonthPlant for month)", rec.getNameEn());
         }
         
-        // تطبيق المكافأة
-        if (bonus > 0) {
-            double newMatch = Math.min(100.0, currentMatch + bonus);
-            plant.setMatchPercentage(newMatch);
-            plant.setMatchLevel(getMatchLevel(newMatch));
-            plant.setMatchLevelAr(getMatchLevelAr(newMatch));
+        // ─── 2. مكافأة/عقوبة الحرارة ───
+        if (weather.getTemperature() != null && plant.getMinTemp() != null && plant.getMaxTemp() != null) {
+            double temp = weather.getTemperature();
+            int minT = plant.getMinTemp();
+            int maxT = plant.getMaxTemp();
             
-            log.debug("🌿 Seasonal bonus for {}: +{}% ({}% -> {}%)", 
-                    plant.getNameEn(), bonus, currentMatch, newMatch);
+            if (temp >= minT && temp <= maxT) {
+                // درجة الحرارة مثالية
+                totalBonus += 7.0;
+                noteAr.append("🌡️ الحرارة مناسبة (").append(String.format("%.0f", temp)).append("°م) • ");
+                noteEn.append("🌡️ Temperature ideal (").append(String.format("%.0f", temp)).append("°C) • ");
+                log.debug("🌡️ Temperature bonus +7% for {} ({}°C in range {}-{}°C)",
+                        rec.getNameEn(), temp, minT, maxT);
+            } else if (temp < minT - 10 || temp > maxT + 10) {
+                // حرارة بعيدة جداً عن المدى
+                totalBonus -= 10.0;
+                noteAr.append("⚠️ الحرارة غير مناسبة (").append(String.format("%.0f", temp)).append("°م، المدى المثالي: ").append(minT).append("-").append(maxT).append("°م) • ");
+                noteEn.append("⚠️ Temperature not ideal (").append(String.format("%.0f", temp)).append("°C, ideal: ").append(minT).append("-").append(maxT).append("°C) • ");
+                log.debug("🌡️ Temperature penalty -10% for {} ({}°C far from {}-{}°C)",
+                        rec.getNameEn(), temp, minT, maxT);
+            } else {
+                // حرارة قريبة من المدى
+                totalBonus -= 5.0;
+                noteAr.append("🌡️ الحرارة قريبة من المدى المناسب • ");
+                noteEn.append("🌡️ Temperature near suitable range • ");
+                log.debug("🌡️ Temperature mild penalty -5% for {} ({}°C near {}-{}°C)",
+                        rec.getNameEn(), temp, minT, maxT);
+            }
         }
         
-        return plant;
+        // ─── 3. مكافأة المنطقة المناخية ───
+        double climateBonus = calculateClimateZoneBonus(plant, climateZone);
+        if (climateBonus != 0) {
+            totalBonus += climateBonus;
+            if (climateBonus > 0) {
+                noteAr.append("🏔️ مناسب لمنطقتك المناخية • ");
+                noteEn.append("🏔️ Suited for your climate zone • ");
+            }
+        }
+        
+        // تطبيق المكافأة النهائية
+        if (totalBonus != 0) {
+            double newMatch = Math.max(5.0, Math.min(100.0, currentMatch + totalBonus));
+            newMatch = Math.round(newMatch * 100.0) / 100.0;
+            rec.setMatchPercentage(newMatch);
+            rec.setMatchLevel(getMatchLevel(newMatch));
+            rec.setMatchLevelAr(getMatchLevelAr(newMatch));
+            rec.setNeedsAdjustment(newMatch < 80);
+            
+            log.debug("📊 Weather adjustment for {}: {}% → {}% (bonus={}%)",
+                    rec.getNameEn(), currentMatch, newMatch, totalBonus);
+        }
+        
+        // تعيين الملاحظات الموسمية
+        rec.setSeasonalMatch(seasonalMatch);
+        String noteArStr = noteAr.toString().trim();
+        String noteEnStr = noteEn.toString().trim();
+        if (noteArStr.endsWith("•")) noteArStr = noteArStr.substring(0, noteArStr.length() - 1).trim();
+        if (noteEnStr.endsWith("•")) noteEnStr = noteEnStr.substring(0, noteEnStr.length() - 1).trim();
+        rec.setSeasonalNoteAr(noteArStr.isEmpty() ? null : noteArStr);
+        rec.setSeasonalNoteEn(noteEnStr.isEmpty() ? null : noteEnStr);
+        
+        return rec;
+    }
+    
+    /**
+     * حساب مكافأة المنطقة المناخية
+     * تصنيف المناطق: coastal (ساحلي)، mountain (جبلي)، valley (غور/وادي)، desert (صحراوي)، inland (داخلي)
+     */
+    private double calculateClimateZoneBonus(Plant plant, String climateZone) {
+        if (climateZone == null || plant.getNameEn() == null) return 0;
+        
+        String name = plant.getNameEn().toLowerCase();
+        String scientific = plant.getNameScientific() != null ? plant.getNameScientific().toLowerCase() : "";
+        
+        return switch (climateZone) {
+            case "coastal" -> {
+                // المناطق الساحلية: رطوبة عالية، حرارة معتدلة
+                // مناسب: ريحان، نعناع، بابونج
+                if (name.contains("basil") || name.contains("mint") || name.contains("chamomile"))
+                    yield 5.0;
+                // غير مناسب: نباتات تحتاج جفاف شديد
+                if (name.contains("cactus")) yield -3.0;
+                yield 0;
+            }
+            case "mountain" -> {
+                // المناطق الجبلية: بارد شتاءً، معتدل صيفاً
+                // مناسب: زعتر، ميرمية، إكليل الجبل
+                if (name.contains("thyme") || name.contains("sage") || name.contains("rosemary")
+                        || scientific.contains("thymus") || scientific.contains("salvia"))
+                    yield 5.0;
+                // أقل مناسبة: نباتات استوائية
+                if (name.contains("tropical") || name.contains("mango")) yield -5.0;
+                yield 0;
+            }
+            case "valley" -> {
+                // منطقة الأغوار: حار جداً، مدار السنة
+                // مناسب: نباتات تتحمل الحرارة
+                if (name.contains("date") || name.contains("pepper") || name.contains("tomato"))
+                    yield 5.0;
+                // أقل مناسبة: نباتات تحتاج برد
+                if (name.contains("rosemary") || name.contains("sage")) yield -3.0;
+                yield 0;
+            }
+            case "desert" -> {
+                // المناطق الصحراوية: جاف جداً
+                // مناسب: نباتات مقاومة الجفاف
+                if (name.contains("rosemary") || name.contains("thyme") || name.contains("lavender"))
+                    yield 5.0;
+                // أقل مناسبة: نباتات تحتاج مياه كثيرة
+                if (name.contains("basil") || name.contains("mint")) yield -3.0;
+                yield 0;
+            }
+            default -> 0; // inland — لا مكافأة إضافية
+        };
+    }
+    
+    /**
+     * تحديد المنطقة المناخية بناءً على الإحداثيات واسم المدينة
+     * 
+     * التصنيفات:
+     * - coastal: مدن ساحلية (يافا، حيفا، عكا، غزة)
+     * - mountain: مدن جبلية (نابلس، الخليل، رام الله، القدس، صفد، جنين)
+     * - valley: منطقة الأغوار (أريحا، طوباس)
+     * - desert: منطقة صحراوية (بئر السبع)
+     * - inland: داخلي (باقي المدن)
+     */
+    private String determineClimateZone(Double latitude, Double longitude, String cityName) {
+        if (cityName == null && latitude == null) return "inland";
+        
+        String city = cityName != null ? cityName.toLowerCase() : "";
+        
+        // تصنيف حسب اسم المدينة أولاً
+        if (city.contains("jaffa") || city.contains("haifa") || city.contains("acre")
+                || city.contains("gaza") || city.contains("khan") || city.contains("rafah")
+                || city.contains("deir") || city.contains("beit hanoun") || city.contains("jabalia")
+                || city.contains("يافا") || city.contains("حيفا") || city.contains("عكا")
+                || city.contains("غزة") || city.contains("خان") || city.contains("رفح")) {
+            return "coastal";
+        }
+        
+        if (city.contains("jericho") || city.contains("أريحا")) {
+            return "valley";
+        }
+        
+        if (city.contains("beersheba") || city.contains("بئر السبع")) {
+            return "desert";
+        }
+        
+        if (city.contains("nablus") || city.contains("hebron") || city.contains("ramallah")
+                || city.contains("jerusalem") || city.contains("safed") || city.contains("jenin")
+                || city.contains("bethlehem") || city.contains("salfit") || city.contains("nazareth")
+                || city.contains("umm al-fahm")
+                || city.contains("نابلس") || city.contains("الخليل") || city.contains("رام الله")
+                || city.contains("القدس") || city.contains("صفد") || city.contains("جنين")) {
+            return "mountain";
+        }
+        
+        // تصنيف حسب الإحداثيات إذا اسم المدينة غير معروف
+        if (latitude != null && longitude != null) {
+            // ساحلي: longitude < 34.8 (قريب من البحر)
+            if (longitude < 34.8) return "coastal";
+            // غور: أريحا وما حولها (lat ~31.8, lon > 35.4)
+            if (longitude > 35.4 && latitude < 32.4 && latitude > 31.5) return "valley";
+            // صحراوي: جنوب وجاف
+            if (latitude < 31.3) return "desert";
+            // جبلي: معظم الضفة الغربية
+            if (longitude > 34.9 && longitude < 35.5 && latitude > 31.3) return "mountain";
+        }
+        
+        return "inland";
+    }
+    
+    /**
+     * ترجمة المنطقة المناخية للعربي
+     */
+    private String translateClimateZone(String zone) {
+        return switch (zone) {
+            case "coastal" -> "ساحلي";
+            case "mountain" -> "جبلي";
+            case "valley" -> "غور / وادي";
+            case "desert" -> "صحراوي";
+            case "inland" -> "داخلي";
+            default -> "غير محدد";
+        };
     }
     
     /**

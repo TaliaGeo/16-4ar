@@ -24,6 +24,26 @@ public class RecommendationListResponse {
     private List<String> userConditionsSummary;           // ملخص ظروف اليوزر
     private List<RecommendedPlant> recommendations;      // قائمة الاقتراحات
 
+    // ===== سياق الطقس والموقع (Weather Context) =====
+    private WeatherContext weatherContext;                // معلومات الطقس المستخدمة في الاقتراحات
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class WeatherContext {
+        private String locationAr;                       // اسم المدينة بالعربي
+        private String locationEn;                       // اسم المدينة بالإنجليزي
+        private Double temperature;                      // درجة الحرارة الحالية
+        private String seasonAr;                         // الموسم بالعربي
+        private String seasonEn;                         // الموسم بالإنجليزي
+        private String climateZoneAr;                    // المنطقة المناخية (جبلي، ساحلي، الخ)
+        private String climateZoneEn;                    // Climate zone (mountain, coastal, etc.)
+        private Boolean locationUsed;                    // هل تم استخدام موقع اليوزر الفعلي
+        private String weatherDescriptionAr;             // وصف حالة الطقس
+        private String weatherDescriptionEn;             // Weather description
+    }
+
     @Data
     @Builder
     @NoArgsConstructor
@@ -42,5 +62,8 @@ public class RecommendationListResponse {
         private Boolean needsAdjustment;                 // هل يحتاج تعديل
         private String conditionsSummaryAr;              // ملخص الظروف بالعربي
         private String conditionsSummaryEn;              // ملخص الظروف بالإنجليزي
+        private Boolean seasonalMatch;                   // هل هذا النبات مناسب للموسم الحالي
+        private String seasonalNoteAr;                   // ملاحظة موسمية (مثلاً: "مناسب للزراعة في الشتاء")
+        private String seasonalNoteEn;                   // Seasonal note (e.g., "Suitable for winter planting")
     }
 }
