@@ -3,6 +3,7 @@ package group.g.graduation.backend.Security.config;
 import group.g.graduation.backend.Security.filter.JwtAuthenticationFilter;
 import group.g.graduation.backend.Security.jwt.JwtTokenProvider;
 import group.g.graduation.backend.Security.oauth2.CustomOAuth2UserService;
+import group.g.graduation.backend.Security.oauth2.HttpCookieOAuth2AuthorizationRequestRepository;
 import group.g.graduation.backend.Security.oauth2.OAuth2AuthenticationFailureHandler;
 import group.g.graduation.backend.Security.oauth2.OAuth2AuthenticationSuccessHandler;
 import group.g.graduation.backend.Security.service.UserDetailsServiceImpl;
@@ -40,6 +41,7 @@ public class SecurityConfig {
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
     private final OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler;
     private final RateLimitFilter rateLimitFilter;
+    private final HttpCookieOAuth2AuthorizationRequestRepository cookieAuthorizationRequestRepository;
 
     public SecurityConfig(
         @Lazy JwtTokenProvider tokenProvider,
@@ -48,7 +50,8 @@ public class SecurityConfig {
         @Lazy CustomOAuth2UserService customOAuth2UserService,
         @Lazy OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler,
         @Lazy OAuth2AuthenticationFailureHandler oAuth2AuthenticationFailureHandler,
-        RateLimitFilter rateLimitFilter
+        RateLimitFilter rateLimitFilter,
+        HttpCookieOAuth2AuthorizationRequestRepository cookieAuthorizationRequestRepository
     ) {
         this.tokenProvider = tokenProvider;
         this.userDetailsService = userDetailsService;
@@ -57,6 +60,7 @@ public class SecurityConfig {
         this.oAuth2AuthenticationSuccessHandler = oAuth2AuthenticationSuccessHandler;
         this.oAuth2AuthenticationFailureHandler = oAuth2AuthenticationFailureHandler;
         this.rateLimitFilter = rateLimitFilter;
+        this.cookieAuthorizationRequestRepository = cookieAuthorizationRequestRepository;
     }
 
     @Bean
@@ -98,6 +102,7 @@ public class SecurityConfig {
             .oauth2Login(oauth2 -> oauth2
                 .authorizationEndpoint(authorization -> authorization
                     .baseUri("/oauth2/authorize")
+                    .authorizationRequestRepository(cookieAuthorizationRequestRepository)
                 )
                 .redirectionEndpoint(redirection -> redirection
                     .baseUri("/oauth2/callback/*")

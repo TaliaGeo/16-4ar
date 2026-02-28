@@ -1,6 +1,9 @@
 package group.g.graduation.backend.user.dto.plant;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonSetter;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
@@ -38,7 +41,25 @@ public class SubmitAnswersRequest {
         @NotNull(message = "معرّف السؤال مطلوب")
         private Long questionId;
 
-        @NotEmpty(message = "يجب اختيار خيار واحد على الأقل")
+        @Schema(description = "قائمة الخيارات المختارة (ممكن أكثر من واحد)")
         private List<Long> selectedOptionIds;  // قائمة الخيارات المختارة (ممكن أكثر من واحد)
+
+        /**
+         * دعم إرسال خيار واحد بدل قائمة - selectedOptionId (مفرد)
+         * بيحوّله لقائمة تلقائياً
+         */
+        @JsonSetter("selectedOptionId")
+        public void setSelectedOptionId(Long optionId) {
+            if (optionId != null) {
+                this.selectedOptionIds = new ArrayList<>(List.of(optionId));
+            }
+        }
+
+        /**
+         * بيرجع القائمة أو قائمة فاضية لو ما في خيارات
+         */
+        public List<Long> getSelectedOptionIds() {
+            return selectedOptionIds != null ? selectedOptionIds : new ArrayList<>();
+        }
     }
 }

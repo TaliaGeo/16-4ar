@@ -491,14 +491,20 @@ public class UserPlantRecommendationService {
                     .orElseThrow(() -> new EntityNotFoundException(
                             "السؤال غير موجود: " + answer.getQuestionId()));
 
+            List<Long> optionIds = answer.getSelectedOptionIds();
+            if (optionIds == null || optionIds.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "يجب اختيار خيار واحد على الأقل للسؤال: " + question.getQuestionTextAr());
+            }
+
             // التحقق من أنو ما اختار أكثر من خيار لسؤال ما بيسمح
-            if (Boolean.FALSE.equals(question.getAllowMultiple()) && answer.getSelectedOptionIds().size() > 1) {
+            if (Boolean.FALSE.equals(question.getAllowMultiple()) && optionIds.size() > 1) {
                 throw new IllegalArgumentException(
                         "السؤال \"" + question.getQuestionTextAr() + "\" يسمح باختيار خيار واحد فقط");
             }
 
             // التحقق من صحة كل الخيارات المختارة
-            for (Long optionId : answer.getSelectedOptionIds()) {
+            for (Long optionId : optionIds) {
                 if (!optionRepository.existsById(optionId)) {
                     throw new EntityNotFoundException("الخيار غير موجود: " + optionId);
                 }

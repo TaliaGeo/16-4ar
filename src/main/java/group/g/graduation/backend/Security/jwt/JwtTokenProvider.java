@@ -1,12 +1,16 @@
 package group.g.graduation.backend.Security.jwt;
 
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SignatureException;
-import jakarta.annotation.PostConstruct;
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+import javax.crypto.SecretKey;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -17,13 +21,20 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import group.g.graduation.backend.Security.dto.UserDTO;
+import group.g.graduation.backend.Security.oauth2.CustomOAuth2User;
 import group.g.graduation.backend.Security.service.UserService;
 import group.g.graduation.backend.Security.token.model.UserToken;
 import group.g.graduation.backend.Security.token.service.TokenStoreService;
-
-import javax.crypto.SecretKey;
-import java.util.*;
-import java.util.stream.Collectors;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
+import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @Slf4j
@@ -70,6 +81,10 @@ public class JwtTokenProvider {
         if (authentication.getPrincipal() instanceof UserDetails) {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             username = userDetails.getUsername();
+        } else if (authentication.getPrincipal() instanceof CustomOAuth2User) {
+            // For OAuth2 login, getName() returns the provider sub ID, not email.
+            // Use the actual email stored on our user object.
+            username = ((CustomOAuth2User) authentication.getPrincipal()).getEmail();
         } else {
             username = authentication.getName();
         }
@@ -128,6 +143,8 @@ public class JwtTokenProvider {
         if (authentication.getPrincipal() instanceof UserDetails) {
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
             username = userDetails.getUsername();
+        } else if (authentication.getPrincipal() instanceof CustomOAuth2User) {
+            username = ((CustomOAuth2User) authentication.getPrincipal()).getEmail();
         } else {
             username = authentication.getName();
         }
