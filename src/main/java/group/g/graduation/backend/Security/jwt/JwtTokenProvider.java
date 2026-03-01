@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 import group.g.graduation.backend.Security.dto.UserDTO;
 import group.g.graduation.backend.Security.oauth2.CustomOAuth2User;
 import group.g.graduation.backend.Security.service.UserService;
+import group.g.graduation.backend.Security.service.UserSessionService;
 import group.g.graduation.backend.Security.token.model.UserToken;
 import group.g.graduation.backend.Security.token.service.TokenStoreService;
 import io.jsonwebtoken.Claims;
@@ -52,10 +53,12 @@ public class JwtTokenProvider {
     private SecretKey jwtSecret;
     
     private final TokenStoreService tokenStoreService;
+    private final UserSessionService userSessionService;
     private final UserService userService;
 
-    public JwtTokenProvider(TokenStoreService tokenStoreService, @Lazy UserService userService) {
+    public JwtTokenProvider(TokenStoreService tokenStoreService, UserSessionService userSessionService, @Lazy UserService userService) {
         this.tokenStoreService = tokenStoreService;
+        this.userSessionService = userSessionService;
         this.userService = userService;
     }
 
@@ -233,6 +236,12 @@ public class JwtTokenProvider {
             String tokenId = claims.get("tokenId", String.class);
             if (tokenId == null) {
                 log.error("Token ID is missing in the token claims");
+                return false;
+            }
+
+            // Check if token is revoked in session store
+            if (!userSessionService.isSessionValid(tokenId)) {
+                log.error("Token {} has been revoked or expired in session store", tokenId);
                 return false;
             }
 

@@ -83,8 +83,7 @@ public class SecurityConfig {
                     "/webjars/**",
                     "/oauth2/**",
                     "/login/oauth2/**",
-                    "/uploads/**",  // Allow public access to uploaded files
-                    "/api/admin/users/create-admin"  // IMPORTANT: Must come BEFORE /api/admin/**
+                    "/uploads/**"  // Allow public access to uploaded files
                 ).permitAll()
                 // Admin endpoints require ADMIN role (MUST come after specific permitAll)
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
@@ -141,12 +140,12 @@ public class SecurityConfig {
         org.springframework.web.cors.CorsConfiguration configuration = 
             new org.springframework.web.cors.CorsConfiguration();
         
-        // Allow localhost origins for development
+        // Allow localhost origins for development + production domains
         configuration.setAllowedOriginPatterns(java.util.List.of(
             "http://localhost:*",
             "http://127.0.0.1:*",
             "https://localhost:*",
-            "*"
+            "https://*.gharsih.ps"
         ));
         
         // Allow ALL HTTP methods including PATCH

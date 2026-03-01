@@ -4,9 +4,6 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
-import java.util.HashSet;
-import java.util.Set;
-
 @Data
 public class RegisterRequest {
     @NotBlank(message = "Full name is required")
@@ -17,9 +14,12 @@ public class RegisterRequest {
     private String email;
 
     @NotBlank(message = "Password is required")
+    @jakarta.validation.constraints.Size(min = 8, message = "كلمة السر يجب أن تكون 8 أحرف على الأقل")
+    @jakarta.validation.constraints.Pattern(
+        regexp = "^(?=.*[a-zA-Z])(?=.*\\d).+$",
+        message = "كلمة السر يجب أن تحتوي على أحرف وأرقام"
+    )
     private String password;
-
-    private Set<String> roleNames = new HashSet<>();
 
     private String profilePicture;
 }

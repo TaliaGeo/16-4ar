@@ -1,9 +1,5 @@
 package group.g.graduation.backend.Security.service;
 
-import jakarta.servlet.http.HttpServletRequest;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-
 import java.util.HashSet;
 import java.util.Set;
 
@@ -19,14 +15,21 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import group.g.graduation.backend.Security.dto.*;
+
+import group.g.graduation.backend.Security.dto.AuthResponse;
+import group.g.graduation.backend.Security.dto.LoginRequest;
+import group.g.graduation.backend.Security.dto.RegisterRequest;
+import group.g.graduation.backend.Security.dto.TokenRefreshResponse;
+import group.g.graduation.backend.Security.dto.UserDTO;
 import group.g.graduation.backend.Security.exception.TokenRefreshException;
 import group.g.graduation.backend.Security.jwt.JwtTokenProvider;
 import group.g.graduation.backend.Security.model.RefreshToken;
 import group.g.graduation.backend.Security.model.UserSession;
 import group.g.graduation.backend.Security.repository.RefreshTokenRepository;
 import group.g.graduation.backend.common.email.EmailService;
-import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
@@ -87,7 +90,8 @@ public AuthResponse register(RegisterRequest registerRequest, HttpServletRequest
     userDTO.setEmail(registerRequest.getEmail());
     userDTO.setFullName(registerRequest.getFullName());
     userDTO.setPassword(registerRequest.getPassword());
-    userDTO.setRoleNames(registerRequest.getRoleNames());
+    // Always assign USER role on registration (never from client)
+    userDTO.setRoleNames(java.util.Set.of("USER"));
     
     // Save user
     UserDTO savedUser = userService.createUser(userDTO);
