@@ -39,8 +39,8 @@ public class OAuth2Controller {
         Map<String, Object> response = new HashMap<>();
         
         Map<String, String> urls = new HashMap<>();
-        urls.put("google", baseUrl + "/oauth2/authorize/google");
-        urls.put("facebook", baseUrl + "/oauth2/authorize/facebook");
+        urls.put("google", baseUrl + "/oauth2/authorization/google");
+        urls.put("facebook", baseUrl + "/oauth2/authorization/facebook");
         
         response.put("oauth2Urls", urls);
         response.put("message", "Open these URLs in browser/webview to initiate OAuth2 login");

@@ -107,13 +107,22 @@ public AuthResponse register(RegisterRequest registerRequest, HttpServletRequest
         // Don't fail registration if email fails
     }
 
-    // Return response without JWT token
+    // Auto-login after registration
+    Authentication authentication = createAuthentication(savedUser);
+    String accessToken = tokenProvider.generateToken(authentication, request);
+    
+    // Create refresh token
+    RefreshToken refreshToken = refreshTokenService.createRefreshToken(savedUser.getId());
+    
+    log.info("Auto-login tokens generated for {}", savedUser.getEmail());
+
     return new AuthResponse(
-        null,  // No access token - user needs to login
-        null,  // No token ID
+        accessToken,
+        null,  // tokenId
         savedUser.getId(), 
         savedUser.getEmail(), 
-        String.join(",", savedUser.getRoleNames())
+        String.join(",", savedUser.getRoleNames()),
+        refreshToken.getToken()
     );
 }
     @Transactional

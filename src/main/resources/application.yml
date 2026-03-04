@@ -97,8 +97,8 @@ app:
     issuer: gharsih-app
   
   oauth2:
-    # URL to redirect after successful OAuth2 login (Flutter app deep link)
-    authorized-redirect-uri: gharsih://oauth2/callback
+    # URLs to redirect after successful OAuth2 login (comma-separated)
+    authorized-redirect-uris: gharsih://oauth2/callback,http://localhost:8080/auth.html
   
   cors:
     allowed-origins: http://localhost:3000,http://localhost:8080,http://localhost:*
@@ -115,6 +115,8 @@ email:
 logging:
   level:
     group.g.graduation.backend.Security: DEBUG
+    org.springframework.security.oauth2: DEBUG
+    org.springframework.security.oauth2.client: DEBUG
     org.hibernate: INFO
 
 # File Upload Configuration

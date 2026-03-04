@@ -37,16 +37,18 @@ Write-Host ""
 Write-Host "3. Testing Google OAuth2 Authorization..." -ForegroundColor Yellow
 Write-Host "اختبار Google OAuth2..." -ForegroundColor Yellow
 try {
-    $response = Invoke-WebRequest -Uri "$BASE_URL/oauth2/authorize/google" -Method GET -MaximumRedirection 0 -ErrorAction SilentlyContinue
-    Write-Host "Response Code: $($response.StatusCode)" -ForegroundColor Magenta
-} catch {
-    if ($_.Exception.Response) {
-        $statusCode = $_.Exception.Response.StatusCode.Value__
-        Write-Host "Redirect Status Code: $statusCode" -ForegroundColor Magenta
-        if ($statusCode -eq 302) {
-            Write-Host "✅ OAuth2 redirect is working (as expected with test credentials)" -ForegroundColor Green
-        }
+    $headers = & curl.exe -I "$BASE_URL/oauth2/authorization/google"
+    $statusLine = $headers | Select-String -Pattern "^HTTP/"
+    $locationLine = $headers | Select-String -Pattern "^Location:"
+    Write-Host "Status: $statusLine" -ForegroundColor Magenta
+    Write-Host "Location: $locationLine" -ForegroundColor Cyan
+    if ($locationLine -match "accounts.google.com") {
+        Write-Host "✅ Google OAuth2 redirect is working" -ForegroundColor Green
+    } else {
+        Write-Host "⚠️ Redirect did not point to Google as expected" -ForegroundColor Yellow
     }
+} catch {
+    Write-Host "Error: $_" -ForegroundColor Red
 }
 Write-Host ""
 
@@ -72,7 +74,7 @@ Write-Host ""
 Write-Host "✅ If you see OAuth2 status as 'configured', the backend is ready" -ForegroundColor Green
 Write-Host "✅ إذا رأيت حالة OAuth2 كـ 'configured'، فالباك إند جاهز" -ForegroundColor Green
 Write-Host ""
-Write-Host "⚠️  You will see redirect errors because we're using test credentials" -ForegroundColor Yellow
+Write-Host "⚠️  You will see redirect errors because we are using test credentials" -ForegroundColor Yellow
 Write-Host "⚠️  ستحصل على أخطاء إعادة توجيه لأننا نستخدم بيانات اختبار" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "🔧 Next Steps / الخطوات التالية:" -ForegroundColor Cyan
@@ -82,9 +84,9 @@ Write-Host "3. Update the environment variables in .env file" -ForegroundColor W
 Write-Host "4. Restart the application" -ForegroundColor White
 Write-Host ""
 
-Write-Host "📝 Current Configuration Status:" -ForegroundColor Cyan
-Write-Host "- OAuth2 Framework: ✅ Implemented and configured" -ForegroundColor Green
-Write-Host "- Google OAuth2: ⚠️  Test credentials (needs real credentials)" -ForegroundColor Yellow
-Write-Host "- Facebook OAuth2: ⚠️  Test credentials (needs real credentials)" -ForegroundColor Yellow
-Write-Host "- JWT Token Generation: ✅ Working" -ForegroundColor Green
-Write-Host "- Success/Failure Handlers: ✅ Working" -ForegroundColor Green
+Write-Host "Current Configuration Status:" -ForegroundColor Cyan
+Write-Host "- OAuth2 Framework: Implemented and configured" -ForegroundColor Green
+Write-Host "- Google OAuth2: Test credentials (needs real credentials)" -ForegroundColor Yellow
+Write-Host "- Facebook OAuth2: Test credentials (needs real credentials)" -ForegroundColor Yellow
+Write-Host "- JWT Token Generation: Working" -ForegroundColor Green
+Write-Host "- Success/Failure Handlers: Working" -ForegroundColor Green
