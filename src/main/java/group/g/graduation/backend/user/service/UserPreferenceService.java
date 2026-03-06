@@ -76,6 +76,9 @@ public class UserPreferenceService {
 
     /**
      * تحديد موقع المستخدم
+     * يدعم حالتين:
+     *   1. إرسال اسم المدينة → البحث في القائمة
+     *   2. إرسال إحداثيات GPS فقط → إيجاد أقرب مدينة (Reverse Geocoding)
      */
     @Transactional
     public LocationResponse setUserLocation(SetLocationRequest request) {
@@ -83,67 +86,93 @@ public class UserPreferenceService {
         UserPreference preference = userPreferenceRepository.findByUserId(user.getId())
                 .orElse(UserPreference.builder().user(user).build());
 
-        // البحث عن المدينة في القائمة لجلب الإحداثيات
-        PalestineCityInfo cityInfo = findCity(request.getCity());
+        boolean hasCity = request.getCity() != null && !request.getCity().isBlank();
+        boolean hasCoordinates = request.getLatitude() != null && request.getLongitude() != null;
 
-        if (cityInfo != null) {
-            preference.setCity(cityInfo.getNameEn());
-            preference.setLatitude(cityInfo.getLatitude());
-            preference.setLongitude(cityInfo.getLongitude());
+        // ── CASE 1: City name provided → look it up ──
+        if (hasCity) {
+            PalestineCityInfo cityInfo = findCity(request.getCity());
 
-            log.info("📍 User {} set location to: {} ({}, {})",
-                    user.getEmail(), cityInfo.getNameEn(), cityInfo.getLatitude(), cityInfo.getLongitude());
+            if (cityInfo != null) {
+                preference.setCity(cityInfo.getNameEn());
+                preference.setLatitude(cityInfo.getLatitude());
+                preference.setLongitude(cityInfo.getLongitude());
 
-            userPreferenceRepository.save(preference);
+                log.info("📍 User {} set location by city name: {} ({}, {})",
+                        user.getEmail(), cityInfo.getNameEn(), cityInfo.getLatitude(), cityInfo.getLongitude());
 
-            return LocationResponse.builder()
-                    .cityAr(cityInfo.getNameAr())
-                    .cityEn(cityInfo.getNameEn())
-                    .latitude(cityInfo.getLatitude())
-                    .longitude(cityInfo.getLongitude())
-                    .region("فلسطين")
-                    .build();
+                userPreferenceRepository.save(preference);
+
+                return LocationResponse.builder()
+                        .cityAr(cityInfo.getNameAr())
+                        .cityEn(cityInfo.getNameEn())
+                        .latitude(cityInfo.getLatitude())
+                        .longitude(cityInfo.getLongitude())
+                        .region("فلسطين")
+                        .build();
+            }
+
+            // City not in list but coordinates provided → use custom city + coordinates
+            if (hasCoordinates) {
+                preference.setCity(request.getCity());
+                preference.setLatitude(request.getLatitude());
+                preference.setLongitude(request.getLongitude());
+
+                log.info("📍 User {} set custom location: {} ({}, {})",
+                        user.getEmail(), request.getCity(), request.getLatitude(), request.getLongitude());
+
+                userPreferenceRepository.save(preference);
+
+                return LocationResponse.builder()
+                        .cityAr(request.getCity())
+                        .cityEn(request.getCity())
+                        .latitude(request.getLatitude())
+                        .longitude(request.getLongitude())
+                        .region("فلسطين")
+                        .build();
+            }
+
+            // City not in list, no coordinates → partial match or default
+            PalestineCityInfo closest = findClosestCity(request.getCity());
+            if (closest != null) {
+                preference.setCity(closest.getNameEn());
+                preference.setLatitude(closest.getLatitude());
+                preference.setLongitude(closest.getLongitude());
+                userPreferenceRepository.save(preference);
+
+                return LocationResponse.builder()
+                        .cityAr(closest.getNameAr())
+                        .cityEn(closest.getNameEn())
+                        .latitude(closest.getLatitude())
+                        .longitude(closest.getLongitude())
+                        .region("فلسطين")
+                        .build();
+            }
         }
 
-        // إذا المدينة مش بالقائمة ولكن المستخدم أرسل إحداثيات
-        if (request.getLatitude() != null && request.getLongitude() != null) {
-            preference.setCity(request.getCity());
+        // ── CASE 2: GPS coordinates only (no city) → find nearest city ──
+        if (hasCoordinates) {
+            PalestineCityInfo nearest = findNearestCity(request.getLatitude(), request.getLongitude());
+
+            preference.setCity(nearest.getNameEn());
             preference.setLatitude(request.getLatitude());
             preference.setLongitude(request.getLongitude());
 
-            log.info("📍 User {} set custom location: {} ({}, {})",
-                    user.getEmail(), request.getCity(), request.getLatitude(), request.getLongitude());
+            log.info("📍 User {} set location by GPS: ({}, {}) → nearest city: {}",
+                    user.getEmail(), request.getLatitude(), request.getLongitude(), nearest.getNameEn());
 
             userPreferenceRepository.save(preference);
 
             return LocationResponse.builder()
-                    .cityAr(request.getCity())
-                    .cityEn(request.getCity())
+                    .cityAr(nearest.getNameAr())
+                    .cityEn(nearest.getNameEn())
                     .latitude(request.getLatitude())
                     .longitude(request.getLongitude())
                     .region("فلسطين")
                     .build();
         }
 
-        // المدينة مش موجودة ولا إحداثيات - نبحث بأقرب تطابق
-        PalestineCityInfo closest = findClosestCity(request.getCity());
-        if (closest != null) {
-            preference.setCity(closest.getNameEn());
-            preference.setLatitude(closest.getLatitude());
-            preference.setLongitude(closest.getLongitude());
-
-            userPreferenceRepository.save(preference);
-
-            return LocationResponse.builder()
-                    .cityAr(closest.getNameAr())
-                    .cityEn(closest.getNameEn())
-                    .latitude(closest.getLatitude())
-                    .longitude(closest.getLongitude())
-                    .region("فلسطين")
-                    .build();
-        }
-
-        // Fallback: نابلس كموقع افتراضي
+        // ── Fallback: Nablus as default ──
         PalestineCityInfo defaultCity = PALESTINE_CITIES.stream()
                 .filter(c -> c.getNameEn().equals("Nablus"))
                 .findFirst().orElse(PALESTINE_CITIES.get(0));
@@ -224,6 +253,53 @@ public class UserPreferenceService {
                         || name.contains(c.getNameEn().toLowerCase()))
                 .findFirst()
                 .orElse(null);
+    }
+
+    /**
+     * إيجاد أقرب مدينة من الإحداثيات باستخدام Haversine distance
+     * (Reverse Geocoding محلي بدون API خارجي)
+     */
+    private PalestineCityInfo findNearestCity(double lat, double lng) {
+        PalestineCityInfo nearest = null;
+        double minDistance = Double.MAX_VALUE;
+
+        for (PalestineCityInfo city : PALESTINE_CITIES) {
+            double distance = haversineDistance(lat, lng, city.getLatitude(), city.getLongitude());
+            if (distance < minDistance) {
+                minDistance = distance;
+                nearest = city;
+            }
+        }
+
+        log.debug("📍 Nearest city to ({}, {}): {} (distance: {} km)",
+                lat, lng, nearest != null ? nearest.getNameEn() : "N/A", String.format("%.2f", minDistance));
+
+        // If no city found (shouldn't happen), fallback to Nablus
+        if (nearest == null) {
+            nearest = PALESTINE_CITIES.stream()
+                    .filter(c -> c.getNameEn().equals("Nablus"))
+                    .findFirst().orElse(PALESTINE_CITIES.get(0));
+        }
+
+        return nearest;
+    }
+
+    /**
+     * حساب المسافة بين نقطتين جغرافيتين بالكيلومتر (Haversine formula)
+     */
+    private double haversineDistance(double lat1, double lng1, double lat2, double lng2) {
+        final double R = 6371.0; // نصف قطر الأرض بالكيلومتر
+
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLng = Math.toRadians(lng2 - lng1);
+
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c;
     }
 
     // ═══════════════════════════════════════════════

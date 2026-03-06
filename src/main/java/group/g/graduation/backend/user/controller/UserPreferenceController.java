@@ -1,5 +1,17 @@
 package group.g.graduation.backend.user.controller;
 
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import group.g.graduation.backend.user.dto.preference.LocationResponse;
 import group.g.graduation.backend.user.dto.preference.NotificationSettingsRequest;
 import group.g.graduation.backend.user.dto.preference.NotificationSettingsResponse;
@@ -14,12 +26,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 /**
  * User Preference Controller - تفضيلات المستخدم 📍
@@ -69,8 +75,19 @@ public class UserPreferenceController {
             @ApiResponse(responseCode = "400", description = "بيانات غير صحيحة"),
             @ApiResponse(responseCode = "401", description = "غير مصرح")
     })
-    public ResponseEntity<LocationResponse> setLocation(@Valid @RequestBody SetLocationRequest request) {
-        log.info("📍 POST /api/user/preferences/location - Setting location: {}", request.getCity());
+    public ResponseEntity<?> setLocation(@RequestBody SetLocationRequest request) {
+        log.info("📍 POST /api/user/preferences/location - city={}, lat={}, lng={}",
+                request.getCity(), request.getLatitude(), request.getLongitude());
+
+        // Manual validation: either city or coordinates must be provided
+        if (!request.isValid()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", "يجب إرسال اسم المدينة أو الإحداثيات (خط العرض وخط الطول)",
+                    "messageEn", "Either city name or coordinates (latitude and longitude) must be provided",
+                    "status", 400
+            ));
+        }
+
         LocationResponse response = userPreferenceService.setUserLocation(request);
         return ResponseEntity.ok(response);
     }
