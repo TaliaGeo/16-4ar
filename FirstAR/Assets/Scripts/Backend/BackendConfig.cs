@@ -29,5 +29,11 @@ public class BackendConfig : ScriptableObject
     public string notificationsUnreadCount = "/api/user/notifications/unread-count";
     public string healthCheck = "/api/security/health";
 
+    [Header("Auto Login (set for demo/testing)")]
+    [Tooltip("Email to auto-login with on startup. Leave empty to skip auto-login.")]
+    public string autoLoginEmail = "";
+    [Tooltip("Password for auto-login.")]
+    public string autoLoginPassword = "";
+
     public string GetFullUrl(string endpoint) => baseUrl + endpoint;
 }

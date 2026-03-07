@@ -64,6 +64,33 @@ public class ApiClient : MonoBehaviour
     {
         _accessToken = PlayerPrefs.GetString(TOKEN_KEY, "");
         _refreshToken = PlayerPrefs.GetString(REFRESH_KEY, "");
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+        // If no saved token, try to read JWT passed from the Flutter app via Intent extra
+        if (string.IsNullOrEmpty(_accessToken))
+        {
+            try
+            {
+                using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+                using (var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity"))
+                using (var intent = activity.Call<AndroidJavaObject>("getIntent"))
+                {
+                    string intentToken = intent.Call<string>("getStringExtra", "jwt_token");
+                    if (!string.IsNullOrEmpty(intentToken))
+                    {
+                        _accessToken = intentToken;
+                        PlayerPrefs.SetString(TOKEN_KEY, _accessToken);
+                        PlayerPrefs.Save();
+                        Debug.Log("[ApiClient] JWT received from Flutter Intent — user authenticated");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogWarning("[ApiClient] Could not read Intent extra: " + e.Message);
+            }
+        }
+#endif
     }
 
     // ──────────── HTTP Methods ────────────

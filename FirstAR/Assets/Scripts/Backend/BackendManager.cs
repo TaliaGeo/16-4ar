@@ -61,6 +61,8 @@ public class BackendManager : MonoBehaviour
                 // If user has saved tokens, verify they're still valid
                 if (ApiClient.Instance.IsAuthenticated)
                     ValidateSession();
+                else
+                    TryAutoLogin(); // No saved token — auto-login on startup
             }
             else
             {
@@ -78,8 +80,28 @@ public class BackendManager : MonoBehaviour
             {
                 Debug.LogWarning($"[BackendManager] Saved session invalid: {error}");
                 ApiClient.Instance.ClearTokens();
+                // Session expired — try auto-login again
+                TryAutoLogin();
             }
         );
+    }
+
+    private void TryAutoLogin()
+    {
+        if (config == null) return;
+        string email = config.autoLoginEmail;
+        string password = config.autoLoginPassword;
+        if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password)) return;
+
+        Debug.Log($"[BackendManager] Auto-login as {email}...");
+        AuthService.Instance?.Login(email, password);
+        if (AuthService.Instance != null)
+        {
+            AuthService.Instance.OnLoginSuccess += () =>
+                Debug.Log("[BackendManager] Auto-login successful — uploads enabled");
+            AuthService.Instance.OnLoginFailed += err =>
+                Debug.LogWarning($"[BackendManager] Auto-login failed: {err}");
+        }
     }
 
     /// <summary>

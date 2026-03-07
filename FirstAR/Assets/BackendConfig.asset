@@ -30,3 +30,5 @@ MonoBehaviour:
   notifications: /api/user/notifications
   notificationsUnreadCount: /api/user/notifications/unread-count
   healthCheck: /api/security/health
+  autoLoginEmail: tqatimeh@gmail.com
+  autoLoginPassword: Talia@992004
