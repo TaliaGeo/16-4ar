@@ -667,11 +667,12 @@ public class ARPlacementManager : MonoBehaviour
         Destroy(tex);
 
         string toastMessage;
+        string designName = string.IsNullOrEmpty(customName)
+            ? "MyDesign_" + DateTime.Now.ToString("yyyyMMdd_HHmmss")
+            : customName;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
-        string filename = (string.IsNullOrEmpty(customName)
-            ? "MyDesign_" + DateTime.Now.ToString("yyyyMMdd_HHmmss")
-            : customName) + ".png";
+        string filename = designName + ".png";
         string folder = "/storage/emulated/0/DCIM/MyDesigns/";
 
         try
@@ -701,9 +702,7 @@ public class ARPlacementManager : MonoBehaviour
         string dir = Path.Combine(Application.persistentDataPath, screenshotFolderName);
         Directory.CreateDirectory(dir);
 
-        string filename = (string.IsNullOrEmpty(customName)
-            ? "MyDesign_" + DateTime.Now.ToString("yyyyMMdd_HHmmss")
-            : customName) + ".png";
+        string filename = designName + ".png";
         string fullPath = Path.Combine(dir, filename);
 
         File.WriteAllBytes(fullPath, png);
@@ -712,6 +711,13 @@ public class ARPlacementManager : MonoBehaviour
         toastMessage = "✅ Screenshot saved";
         onScreenshotSaved?.Invoke(fullPath);
 #endif
+
+        // Upload to backend if connected and authenticated
+        if (DesignUploadService.Instance != null && ApiClient.Instance != null
+            && ApiClient.Instance.IsAuthenticated)
+        {
+            DesignUploadService.Instance.UploadDesign(png, designName);
+        }
 
         RestoreUI(menuWasActive, hudWasActive);
         ShowToast(toastMessage);

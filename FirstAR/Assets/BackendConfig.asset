@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec416e957fe92a242a15062f98cfe45d, type: 3}
+  m_Name: BackendConfig
+  m_EditorClassIdentifier: Assembly-CSharp::BackendConfig
+  baseUrl: http://192.168.1.217:8081
+  authLogin: /api/auth/login
+  authRegister: /api/auth/register
+  authRefreshToken: /api/auth/refresh-token
+  userMe: /api/users/me
+  userPreferencesLocation: /api/user/preferences/location
+  userPreferencesCities: /api/user/preferences/cities
+  homeWeather: /api/user/home/weather
+  homeDailyQuote: /api/user/home/daily-quote
+  homeCalendar: /api/user/home/calendar
+  plantQuestions: /api/user/plant-recommendation/questions
+  plantSubmitAnswers: /api/user/plant-recommendation/submit-answers
+  myCropsOverview: /api/user/my-crops/overview
+  myCropsPlanned: /api/user/my-crops/planned
+  myCropsPlanted: /api/user/my-crops/planted
+  notifications: /api/user/notifications
+  notificationsUnreadCount: /api/user/notifications/unread-count
+  healthCheck: /api/security/health

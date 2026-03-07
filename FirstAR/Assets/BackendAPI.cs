@@ -1,31 +1,27 @@
-using System.Collections;
 using UnityEngine;
-using UnityEngine.Networking;
 
+/// <summary>
+/// Legacy BackendAPI kept for backward compatibility.
+/// The real connection logic is now in Scripts/Backend/.
+/// This script verifies the Backend services are available on Start.
+/// </summary>
 public class BackendAPI : MonoBehaviour
 {
-    private const string BaseUrl = "http://localhost:8081/api";
-
     void Start()
     {
-        StartCoroutine(GetRequest(BaseUrl));
-    }
-
-    IEnumerator GetRequest(string url)
-    {
-        using (UnityWebRequest request = UnityWebRequest.Get(url))
+        if (ApiClient.Instance != null)
         {
-            yield return request.SendWebRequest();
-
-            if (request.result == UnityWebRequest.Result.ConnectionError ||
-                request.result == UnityWebRequest.Result.ProtocolError)
+            ApiClient.Instance.CheckHealth((connected, message) =>
             {
-                Debug.LogError("Backend connection error: " + request.error);
-            }
-            else
-            {
-                Debug.Log("Backend response: " + request.downloadHandler.text);
-            }
+                if (connected)
+                    Debug.Log("[BackendAPI] ✅ Backend is reachable");
+                else
+                    Debug.LogWarning("[BackendAPI] ⚠️ Backend not reachable: " + message);
+            });
+        }
+        else
+        {
+            Debug.LogWarning("[BackendAPI] ApiClient not found. Add BackendManager to the scene.");
         }
     }
 }
