@@ -61,6 +61,19 @@ public class ARAnchorService : MonoBehaviour
         if (anchorManager == null) return null;
         if (plane != null && plane.trackingState == TrackingState.None) return null;
 
+        // Prefer plane-attached anchors for stronger snap-to-surface behavior.
+        if (plane != null && plane.trackingState == TrackingState.Tracking)
+        {
+            var planeAnchor = anchorManager.AttachAnchor(plane, pose);
+            if (planeAnchor != null)
+            {
+                planeAnchor.name = "PlaneAnchor";
+                Debug.Log($"[ARAnchorService] Plane anchor created at {pose.position}");
+                return planeAnchor;
+            }
+        }
+
+        // Fallback: world anchor if plane attachment fails.
         var anchorGO = new GameObject("WorldAnchor");
         anchorGO.transform.SetPositionAndRotation(pose.position, pose.rotation);
         ARAnchor anchor = anchorGO.AddComponent<ARAnchor>();
@@ -71,7 +84,7 @@ public class ARAnchorService : MonoBehaviour
             return null;
         }
 
-        Debug.Log($"[ARAnchorService] World anchor created at {pose.position}");
+        Debug.LogWarning($"[ARAnchorService] Plane attach failed, using world anchor at {pose.position}");
         return anchor;
     }
 

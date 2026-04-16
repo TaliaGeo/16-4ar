@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -40,9 +41,11 @@ public class ARScreenshotService : MonoBehaviour
     public string JwtToken  { get; set; } = "";
     public string ApiBaseUrl { get; set; } = "";
 
-    public void Capture() => StartCoroutine(CaptureCoroutine());
+    public void Capture() => Capture(null);
 
-    private IEnumerator CaptureCoroutine()
+    public void Capture(string customDesignName) => StartCoroutine(CaptureCoroutine(customDesignName));
+
+    private IEnumerator CaptureCoroutine(string customDesignName)
     {
         HideUI?.Invoke();
         HideLabels?.Invoke();
@@ -61,12 +64,12 @@ public class ARScreenshotService : MonoBehaviour
         byte[] png = tex.EncodeToPNG();
         Destroy(tex);
 
-        string designName = "MyDesign_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        string designName = BuildDesignName(customDesignName);
         string fn = designName + ".png";
         string savedPath = null;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
-        string folder = "/storage/emulated/0/DCIM/MyDesigns/";
+        string folder = $"/storage/emulated/0/DCIM/{screenshotFolderName}/";
         try
         {
             Directory.CreateDirectory(folder);
@@ -103,7 +106,20 @@ public class ARScreenshotService : MonoBehaviour
             StartCoroutine(UploadFallback(png, fn));
         }
 
-        ShowToast?.Invoke("Screenshot Saved!");
+        ShowToast?.Invoke($"Saved: {designName}");
+    }
+
+    private string BuildDesignName(string customDesignName)
+    {
+        string trimmed = (customDesignName ?? string.Empty).Trim();
+        if (string.IsNullOrEmpty(trimmed))
+            return "MyDesign_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
+
+        string sanitized = Regex.Replace(trimmed, "[^a-zA-Z0-9 _-]", "");
+        sanitized = Regex.Replace(sanitized, "\\s+", " ").Trim();
+        if (string.IsNullOrEmpty(sanitized))
+            sanitized = "MyDesign_" + DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        return sanitized;
     }
 
     private IEnumerator UploadFallback(byte[] pngData, string fileName)

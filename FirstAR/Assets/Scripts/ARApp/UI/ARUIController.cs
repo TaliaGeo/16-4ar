@@ -36,6 +36,7 @@ public class ARUIController : MonoBehaviour
     private Coroutine  _toastCR;
     private Image[]    _selImages;
     private int        _selectedIndex;
+    private Image      _deleteBtnImage;
 
     private static readonly int ZTestMode = Shader.PropertyToID("unity_GUIZTestMode");
 
@@ -98,6 +99,8 @@ public class ARUIController : MonoBehaviour
     public void SetDeleteBanner(bool on)
     {
         if (_bannerGO) _bannerGO.SetActive(on);
+        if (_deleteBtnImage)
+            _deleteBtnImage.color = on ? COL_RED_BG : COL_BAR;
     }
 
     /// <summary>Snapshot then hide all screen-space UI for screenshot.</summary>
@@ -303,9 +306,10 @@ public class ARUIController : MonoBehaviour
         menuBtn.onClick.AddListener(() => SetMenuOpen(true));
 
         var trashBtn = MakeBarIcon(_barGO.transform, "TrashBtn", new Vector2(gap, 8), 130);
+        _deleteBtnImage = trashBtn.GetComponent<Image>();
         DrawTrashIcon3D(trashBtn.transform, iconSz, ALOE, new Color(OLIVE.r, OLIVE.g, OLIVE.b, 0.5f));
         MakeBarLabel(trashBtn.transform, "Remove", new Vector2(0, -48f));
-        trashBtn.onClick.AddListener(() => OnDeleteToggled?.Invoke(true));
+        trashBtn.onClick.AddListener(() => OnDeleteToggled?.Invoke(!(_bannerGO && _bannerGO.activeSelf)));
     }
 
     // ── Exit Button ─────────────────────────────────────────────────
