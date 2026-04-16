@@ -30,3 +30,12 @@ Thumbs.db
 # Build output
 /FirstAR_BurstDebugInformation_DoNotShip/
 /runwithiman_BackUpThisFolder_ButDontShipItWithYourGame/
+
+# Environment / secret files
+.env
+.env.*
+*.env
+*.env.*
+secrets.json
+local.settings.json
+BackendConfig.asset
