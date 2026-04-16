@@ -145,7 +145,7 @@ public class ARPlacementController : MonoBehaviour
 
         _uiCtrl.OnCaptureClicked  = () => _screenshotSvc.Capture();
         _uiCtrl.OnMenuOpened      = () => SetDeleteMode(false);
-        _uiCtrl.OnDeleteToggled   = on => SetDeleteMode(!_deleteMode);
+        _uiCtrl.OnDeleteToggled   = on => SetDeleteMode(on);
         _uiCtrl.OnPotSelected     = idx => _selectedIndex = idx;
         _uiCtrl.OnExitClicked     = () => Application.Quit();
 
@@ -203,6 +203,7 @@ public class ARPlacementController : MonoBehaviour
 
         _anchorService.MonitorAnchorHealth(
             ref _healthCheckFrame, config.healthCheckInterval, ref _lastSessionState);
+        EnforceFrozenTransforms();
         BillboardLabels();
         UpdateReticle();
     }
@@ -224,19 +225,12 @@ public class ARPlacementController : MonoBehaviour
             return;
         }
 
-        // Two-pass plane raycast
+        // Strict placement: PlaneWithinPolygon only (inside discovered plane boundary).
         ARPlane bestPlane = null;
         ARRaycastHit bestHit = default;
 
         if (raycastManager.Raycast(screenPos, sHits, PlaneFilterTight))
             PickBestPlaneHit(sHits, ref bestPlane, ref bestHit);
-
-        if (bestPlane == null && raycastManager.Raycast(screenPos, sHits, PlaneFilterLoose))
-        {
-            PickBestPlaneHit(sHits, ref bestPlane, ref bestHit);
-            if (bestPlane != null && bestPlane.trackingState != TrackingState.Tracking)
-                bestPlane = null;
-        }
 
         if (bestPlane != null)
         {
@@ -244,7 +238,7 @@ public class ARPlacementController : MonoBehaviour
             return;
         }
 
-        _uiCtrl.ShowToast("Slowly aim at a flat surface like floor or table");
+        _uiCtrl.ShowToast("Point at a detected horizontal surface boundary");
     }
 
     private void OnObjectTap(GameObject tapped)
@@ -256,7 +250,9 @@ public class ARPlacementController : MonoBehaviour
 
     private void OnPinchBegan(GameObject target, float startDist, Vector3 startScale)
     {
-        // No action needed at begin — scale is applied per-move and finalized at end.
+        var ctrl = target.GetComponent<ARObjectController>();
+        if (ctrl == null) return;
+        ctrl.Unfreeze();
     }
 
     private void OnPinchMoved(GameObject target, float ratio)
@@ -300,6 +296,9 @@ public class ARPlacementController : MonoBehaviour
         // Rebuild measurement label
         if (ctrl.MeasureLabel) Destroy(ctrl.MeasureLabel);
         ctrl.MeasureLabel = _uiCtrl.CreateMeasureLabel(target, ignoreNames);
+
+        // Re-freeze local transform after scaling.
+        ctrl.Freeze();
     }
 
     // ════════════════════════════════════════════════════════════════
@@ -339,6 +338,7 @@ public class ARPlacementController : MonoBehaviour
         ctrl.AnchorObject  = anchor.gameObject;
         ctrl.SourcePlaneId = plane.trackableId;
         ctrl.MeasureLabel  = _uiCtrl.CreateMeasureLabel(obj, entry.ignoreRendererNames);
+        ctrl.Freeze();
 
         // Validate: ensure the anchor is not under the camera rig
         if (!ValidateParentChain(obj, anchor))
@@ -495,6 +495,19 @@ public class ARPlacementController : MonoBehaviour
         if (plane.trackingState == TrackingState.None) return false;
         if (plane.size.x * plane.size.y < config.minPlaneAreaSqm) return false;
         return true;
+    }
+
+
+    private void EnforceFrozenTransforms()
+    {
+        for (int i = 0; i < _spawned.Count; i++)
+        {
+            var obj = _spawned[i];
+            if (!obj) continue;
+            var ctrl = obj.GetComponent<ARObjectController>();
+            if (ctrl == null) continue;
+            ctrl.EnforceFreeze(config.freezePosSqrTol, config.freezeRotDegTol, config.freezeScaleSqrTol);
+        }
     }
 
     // ════════════════════════════════════════════════════════════════
