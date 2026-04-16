@@ -1,0 +1,1625 @@
+﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using TMPro;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+using UnityEngine.XR.ARFoundation;
+using UnityEngine.XR.ARSubsystems;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
+using ETouch = UnityEngine.InputSystem.EnhancedTouch.Touch;
+
+// ================================================================
+//  ARPlacementManager  –  Olive-Green AR Pot Placement UI
+//  All UI generated at runtime in SetupRuntimeUI().
+//  Target device: Google Pixel 4 (1080 × 2160).
+// ================================================================
+[RequireComponent(typeof(ARRaycastManager))]
+[RequireComponent(typeof(ARPlaneManager))]
+[DefaultExecutionOrder(-50)] // Run Awake BEFORE ARCameraBackground so occlusion is wired up in time
+public class ARPlacementManager : MonoBehaviour
+{
+    // ── DESIGN TOKENS ──────────────────────────────────────────
+    private static readonly Color COL_BAR      = new Color(0.33f, 0.42f, 0.18f);   // olive green
+    private static readonly Color COL_MENU_BG  = new Color(0.90f, 0.90f, 0.90f);   // light grey
+    private static readonly Color COL_WHITE    = Color.white;
+    private static readonly Color COL_DARK     = new Color(0.25f, 0.25f, 0.25f);
+    private static readonly Color COL_MGREY    = new Color(0.50f, 0.50f, 0.50f);   // measure text
+    private static readonly Color COL_DEL_TINT = new Color(0.95f, 0.35f, 0.35f, 0.90f);
+    private static readonly Color COL_RED_BG   = new Color(0.80f, 0.25f, 0.25f);
+    private static readonly Color COL_TOAST_BG = new Color(0.14f, 0.14f, 0.14f, 0.88f);
+
+    // ── INSPECTOR ──────────────────────────────────────────────
+    [Header("AR")]
+    [SerializeField] private ARRaycastManager   raycastManager;
+    [SerializeField] private ARPlaneManager     planeManager;
+    [SerializeField] private ARAnchorManager    anchorManager;
+    [SerializeField] private AROcclusionManager occlusionManager;
+    [SerializeField] private Camera             arCamera;
+
+    [Header("Pot Prefabs")]
+    [SerializeField] private GameObject[] potPrefabs  = new GameObject[2];
+    [SerializeField] private string[]     potNames    = new string[] { "Classic Pot", "Modern Pot" };
+    [SerializeField] private float[]      potRealHeightCm = new float[] { 30f, 25f };
+
+    [Header("Scale")]
+    [SerializeField] private float defaultScale = 1f;
+    [SerializeField] private float minScale     = 0.3f;
+    [SerializeField] private float maxScale     = 3f;
+
+    [Header("Placement")]
+    [SerializeField] private float   yOffset = 0f;
+    [SerializeField] private bool    faceCameraOnPlace = true;
+    [SerializeField] private Vector3 prefabRotationOffsetEuler = Vector3.zero;
+
+    [Header("Overlap Prevention")]
+    [Tooltip("Minimum gap in metres between any two placed pots. 0 = touching allowed but no overlap.")]
+    [SerializeField] private float   minPotGapMetres = 0f;
+
+    [Header("Bounds Filter")]
+    [SerializeField] private string[] ignoreRendererNameContains =
+        new string[] { "ground", "shadow", "plane" };
+
+    [Header("Screenshot")]
+    [SerializeField] private string screenshotFolderName = "MyDesigns";
+
+    // ── RUNTIME STATE ──────────────────────────────────────────
+    private int  selectedPotIndex;
+    private bool deleteMode;
+    private readonly List<GameObject> spawned = new List<GameObject>();
+
+    private static readonly List<ARRaycastHit> sHits = new List<ARRaycastHit>();
+    private readonly List<RaycastResult> uiHits = new List<RaycastResult>();
+    private float lastTapTime = -10f;
+    private const float TAP_CD = 0.22f;
+
+    private float     pinchStartDist;
+    private Vector3   pinchStartScale;
+    private GameObject pinchTarget;
+
+    // Which pot currently has its measurement label visible
+    private GameObject activeLabelPot;
+
+    private MaterialPropertyBlock tintMPB;
+    private static MaterialPropertyBlock clearMPB;
+    private static readonly int PropBC = Shader.PropertyToID("_BaseColor");
+    private static readonly int PropC  = Shader.PropertyToID("_Color");
+
+    // ── UI REFS ────────────────────────────────────────────────
+    private Canvas     canvas;
+    private GameObject barGO, menuGO, bannerGO, toastGO;
+    private TMP_Text   toastTxt;
+    private Coroutine  toastCR;
+    private Image      sel1Img, sel2Img;   // pot selection highlight in menu
+    private Sprite     spr1, spr2;
+
+    // ── INNER CLASS ────────────────────────────────────────────
+    // PotInfo stores per-pot metadata. It does NOT modify the pot's
+    // transform every frame.  After placement, the pot is parented to
+    // an ARAnchor and its transform is NEVER written again — the anchor
+    // keeps it world-locked via AR Foundation tracking updates.
+    private class PotInfo : MonoBehaviour
+    {
+        public int        idx;
+        public float      surfaceY;
+        public Vector3    normScale;
+        public GameObject anchorObj;
+        public GameObject measureLabel;
+    }
+
+    // ================================================================
+    //  LIFECYCLE
+    // ================================================================
+    private void Awake()
+    {
+        if (!raycastManager)   raycastManager   = FindFirstObjectByType<ARRaycastManager>();
+        if (!planeManager)     planeManager     = FindFirstObjectByType<ARPlaneManager>();
+        if (!anchorManager)    anchorManager    = FindFirstObjectByType<ARAnchorManager>();
+        if (!occlusionManager) occlusionManager = FindFirstObjectByType<AROcclusionManager>();
+        if (!arCamera)         arCamera         = Camera.main;
+
+        // ── Ensure ARAnchorManager exists at runtime ──
+        if (!anchorManager)
+        {
+            GameObject host = planeManager ? planeManager.gameObject : gameObject;
+            anchorManager = host.AddComponent<ARAnchorManager>();
+            Debug.LogWarning("[AR] ARAnchorManager was missing — added at runtime to " + host.name);
+        }
+
+        // ── Ensure occlusion is set up BEFORE ARCameraBackground.Awake() ──
+        // ARCameraBackground.Awake() calls GetComponent<AROcclusionManager>().
+        // If it doesn't find one, occlusion is NEVER wired up.  We MUST add
+        // it here in Awake (with [DefaultExecutionOrder(-50)]) so it exists
+        // before ARCameraBackground looks for it.
+        ConfigureOcclusion();
+
+        // ── Disable XRI Screen Space Ray Interactor ──
+        DisableXRIInteractors();
+
+        tintMPB = new MaterialPropertyBlock();
+        if (clearMPB == null) clearMPB = new MaterialPropertyBlock();
+
+        EnhancedTouchSupport.Enable();
+        LoadPotSprites();
+        canvas = CreateCanvas();
+        SetupRuntimeUI();
+    }
+
+    private void Start()
+    {
+        menuGO.SetActive(false);
+        bannerGO.SetActive(false);
+        toastGO.SetActive(false);
+        CleanPreExistingPots();
+        ConfigurePlaneDetection();
+
+        // ── Occlusion pipeline diagnostics ──
+        var bgComp = arCamera ? arCamera.GetComponent<ARCameraBackground>() : null;
+        var soComp = arCamera ? arCamera.GetComponent<ARShaderOcclusion>() : null;
+        Debug.Log($"[AR] Start — anchorManager={(anchorManager != null ? anchorManager.gameObject.name : "NULL")}"
+            + $", planeManager={(planeManager != null ? planeManager.gameObject.name : "NULL")}"
+            + $", occlusionManager={(occlusionManager != null ? occlusionManager.gameObject.name : "NULL")}"
+            + $", camera={arCamera?.name}"
+            + $"\n  ARCameraBackground={(bgComp != null ? "OK" : "MISSING")}"
+            + $", ARShaderOcclusion={(soComp != null ? "OK" : "MISSING")}"
+            + $", envDepthMode={occlusionManager?.requestedEnvironmentDepthMode}");
+    }
+
+    private void Update()
+    {
+        HandleTouch();
+        HandlePinch();
+        BillboardLabels();
+    }
+
+    /// <summary>
+    /// LateUpdate — clean up destroyed references only.
+    /// Pots are parented to ARAnchor GameObjects and have NO active
+    /// components that can move them (physics destroyed, XRI stripped,
+    /// all MonoBehaviours disabled).  We do NOT write to their
+    /// transforms here — doing so every frame was the root cause of
+    /// jitter because it fought AR Foundation's anchor corrections.
+    /// </summary>
+    private void LateUpdate()
+    {
+        spawned.RemoveAll(o => o == null);
+    }
+
+    // ================================================================
+    //  DISABLE XRI INTERACTORS
+    //  The XR Origin (AR Rig) prefab ships with a Screen Space Ray
+    //  Interactor that can consume touch events and fight our custom
+    //  HandleTouch input.  Disable all XRI interactors scene-wide
+    //  so they cannot interfere with pot placement or selection.
+    // ================================================================
+    private void DisableXRIInteractors()
+    {
+        foreach (var mb in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))
+        {
+            string tn = mb.GetType().Name;
+            if (tn.Contains("Interactor") || tn.Contains("XRController")
+                || tn.Contains("ScreenSpaceController"))
+            {
+                mb.enabled = false;
+                Debug.Log("[AR] Disabled XRI component: " + tn + " on " + mb.gameObject.name);
+            }
+        }
+    }
+
+    // ================================================================
+    //  PLANE DETECTION CONFIGURATION
+    //  Lock to HorizontalUp only – walls, doors, ceilings are ignored
+    //  at the subsystem level so they never produce trackables.
+    // ================================================================
+    private void ConfigurePlaneDetection()
+    {
+        if (planeManager != null)
+            planeManager.requestedDetectionMode = PlaneDetectionMode.Horizontal;
+    }
+
+    // ================================================================
+    //  OCCLUSION CONFIGURATION
+    //  MUST run in Awake() BEFORE ARCameraBackground.Awake(), which
+    //  calls GetComponent<AROcclusionManager>() exactly once.  If the
+    //  manager doesn't exist at that moment, background-based occlusion
+    //  is never wired up.  [DefaultExecutionOrder(-50)] on this class
+    //  ensures our Awake runs first.
+    //
+    //  Two occlusion paths are set up:
+    //  1. Background occlusion: ARCameraBackground detects the
+    //     AROcclusionManager and composites the camera feed with depth.
+    //  2. Shader occlusion: ARShaderOcclusion sets global keywords
+    //     (XR_HARD_OCCLUSION) so URP shaders on the pots can discard
+    //     pixels that are behind real-world geometry.
+    // ================================================================
+    private void ConfigureOcclusion()
+    {
+        if (!arCamera)
+        {
+            Debug.LogWarning("[AR] ConfigureOcclusion: no camera found");
+            return;
+        }
+
+        // 1. Ensure AROcclusionManager exists on the AR camera
+        if (!occlusionManager)
+            occlusionManager = arCamera.GetComponent<AROcclusionManager>();
+        if (!occlusionManager)
+        {
+            occlusionManager = arCamera.gameObject.AddComponent<AROcclusionManager>();
+            Debug.Log("[AR] AROcclusionManager added to " + arCamera.name);
+        }
+
+        occlusionManager.requestedEnvironmentDepthMode =
+            EnvironmentDepthMode.Best;
+        occlusionManager.requestedOcclusionPreferenceMode =
+            OcclusionPreferenceMode.PreferEnvironmentOcclusion;
+
+        // 2. Ensure ARShaderOcclusion exists for per-object shader occlusion.
+        //    This sets global shader keywords (XR_HARD_OCCLUSION) and depth
+        //    textures so ALL scene shaders can depth-test against the real world.
+        var shaderOcclusion = arCamera.GetComponent<ARShaderOcclusion>();
+        if (!shaderOcclusion)
+        {
+            shaderOcclusion = arCamera.gameObject.AddComponent<ARShaderOcclusion>();
+            Debug.Log("[AR] ARShaderOcclusion added to " + arCamera.name);
+        }
+
+        // 3. If ARCameraBackground already ran its Awake() before us and
+        //    cached a null occlusionManager, force it to re-discover by
+        //    toggling enabled.  This triggers OnDisable → OnEnable, and
+        //    OnEnable subscribes to occlusionManager.frameReceived.
+        var bg = arCamera.GetComponent<ARCameraBackground>();
+        if (bg != null && bg.enabled)
+        {
+            bg.enabled = false;
+            bg.enabled = true;
+            Debug.Log("[AR] Toggled ARCameraBackground to re-discover occlusion manager");
+        }
+
+        Debug.Log("[AR] Occlusion configured: EnvironmentDepth=Best, ShaderOcclusion=Hard");
+    }
+
+    /// <summary>
+    /// Safety net: destroy any stale pot prefab instances left in the scene
+    /// at build time.  They would appear as "flying pots" at their serialized
+    /// world position before the user places anything.
+    /// </summary>
+    private void CleanPreExistingPots()
+    {
+        if (potPrefabs == null) return;
+        var roots = UnityEngine.SceneManagement.SceneManager
+                        .GetActiveScene().GetRootGameObjects();
+        foreach (var root in roots)
+        {
+            if (root == gameObject) continue;
+            if (spawned.Contains(root)) continue;
+            foreach (var prefab in potPrefabs)
+            {
+                if (!prefab) continue;
+                if (root.name == prefab.name
+                    && root.GetComponentInChildren<MeshRenderer>())
+                {
+                    Debug.Log("[AR] Removing stale scene object: " + root.name);
+                    Destroy(root);
+                    break;
+                }
+            }
+        }
+    }
+
+    // ================================================================
+    //  PLACEMENT RETICLE  (ghost pot that follows detected floor)
+    // ================================================================
+    // STRICT: only place on fully-detected horizontal plane polygons.
+    // PlaneEstimated / FeaturePoint excluded to prevent mid-air pots.
+    private static readonly TrackableType StrictPlaneFilter =
+        TrackableType.PlaneWithinPolygon;
+
+    // ================================================================
+    //  LOAD POT SPRITES FROM Resources/potsphoto/
+    // ================================================================
+    private void LoadPotSprites()
+    {
+        spr1 = LoadSpr("potsphoto/Screenshot 2026-02-27 213635");
+        if (spr1 == null) spr1 = LoadSpr("potsphoto/pot2");
+        spr2 = LoadSpr("potsphoto/pot2 1");
+    }
+
+    private Sprite LoadSpr(string path)
+    {
+        var tex = Resources.Load<Texture2D>(path);
+        if (tex == null) return null;
+        return Sprite.Create(tex,
+            new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f));
+    }
+
+    // ================================================================
+    //  CANVAS
+    // ================================================================
+    private Canvas CreateCanvas()
+    {
+        // Detach EventSystem from any Canvas hierarchy
+        var existES = FindFirstObjectByType<EventSystem>(FindObjectsInactive.Include);
+        if (existES != null) existES.transform.SetParent(null);
+
+        // Disable all existing canvases
+        foreach (var c in FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+            c.gameObject.SetActive(false);
+
+        // Ensure EventSystem exists
+        if (EventSystem.current == null)
+        {
+            if (existES != null) existES.gameObject.SetActive(true);
+            else
+            {
+                var esGo = new GameObject("EventSystem");
+                esGo.AddComponent<EventSystem>();
+                esGo.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+            }
+        }
+
+        var go = new GameObject("ARCanvas");
+        var cv = go.AddComponent<Canvas>();
+        cv.renderMode = RenderMode.ScreenSpaceOverlay;
+        cv.sortingOrder = 100;
+
+        var sc = go.AddComponent<CanvasScaler>();
+        sc.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        sc.referenceResolution = new Vector2(1080, 2160); // Pixel 4
+        sc.matchWidthOrHeight = 0.5f;
+
+        go.AddComponent<GraphicRaycaster>();
+        return cv;
+    }
+
+    // ================================================================
+    //  SetupRuntimeUI  —  builds ALL UI from code
+    // ================================================================
+    private void SetupRuntimeUI()
+    {
+        Transform root = canvas.transform;
+        BuildBottomBar(root);
+        BuildExitButton(root);
+        BuildDeleteBanner(root);
+        BuildToast(root);
+        BuildMenu(root);
+    }
+
+    // ────────────────────────────────────────
+    //  BOTTOM BAR  (full width, olive green)
+    // ────────────────────────────────────────
+    private void BuildBottomBar(Transform root)
+    {
+        float barH = 160f;
+
+        barGO = new GameObject("BottomBar");
+        barGO.transform.SetParent(root, false);
+        var rt = barGO.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0, 0);
+        rt.anchorMax = new Vector2(1, 0);
+        rt.pivot     = new Vector2(0.5f, 0);
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = new Vector2(0, barH);
+
+        var bg = barGO.AddComponent<Image>();
+        bg.color = COL_BAR;
+        bg.raycastTarget = true;
+
+        float gap = 250f;
+
+        // Camera (left)
+        var camBtn = MakeBarIcon(barGO.transform, "CameraBtn", new Vector2(-gap, 0));
+        DrawCameraIcon(camBtn.transform, 50f, COL_WHITE);
+        camBtn.onClick.AddListener(TakeScreenshot);
+
+        // Menu (center)
+        var menuBtn = MakeBarIcon(barGO.transform, "MenuBtn", Vector2.zero);
+        DrawHamburgerIcon(menuBtn.transform, 50f, COL_WHITE);
+        menuBtn.onClick.AddListener(() => SetMenuOpen(true));
+
+        // Trash (right)
+        var trashBtn = MakeBarIcon(barGO.transform, "TrashBtn", new Vector2(gap, 0));
+        DrawTrashIcon(trashBtn.transform, 50f, COL_WHITE);
+        trashBtn.onClick.AddListener(() => SetDeleteMode(!deleteMode));
+    }
+
+    // ────────────────────────────────────────
+    //  EXIT BUTTON  (top-right back arrow)
+    // ────────────────────────────────────────
+    private void BuildExitButton(Transform root)
+    {
+        float safeT = SafeTopPx() + 18f;
+
+        var go = new GameObject("ExitBtn");
+        go.transform.SetParent(root, false);
+        var rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = new Vector2(1, 1);
+        rt.pivot = new Vector2(1, 1);
+        rt.anchoredPosition = new Vector2(-24, -safeT);
+        rt.sizeDelta = new Vector2(60, 60);
+
+        var img = go.AddComponent<Image>();
+        img.color = new Color(0, 0, 0, 0.35f);
+        img.raycastTarget = true;
+
+        var btn = go.AddComponent<Button>();
+        btn.targetGraphic = img;
+        NavNone(btn);
+        btn.onClick.AddListener(() => Application.Quit());
+
+        DrawBackArrow(go.transform, 30f, COL_WHITE);
+    }
+
+    // ────────────────────────────────────────
+    //  DELETE-MODE BANNER  (top center)
+    // ────────────────────────────────────────
+    private void BuildDeleteBanner(Transform root)
+    {
+        float safeT = SafeTopPx() + 18f;
+
+        bannerGO = new GameObject("DeleteBanner");
+        bannerGO.transform.SetParent(root, false);
+        var rt = bannerGO.AddComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1);
+        rt.pivot = new Vector2(0.5f, 1);
+        rt.anchoredPosition = new Vector2(0, -safeT);
+        rt.sizeDelta = new Vector2(680, 76);
+
+        var bg = bannerGO.AddComponent<Image>();
+        bg.color = COL_RED_BG;
+        bg.raycastTarget = false;
+
+        var txt = AddTMP(bannerGO.transform, "Txt",
+            "You are in Delete Mode", 30f, COL_WHITE,
+            TextAlignmentOptions.Center);
+        StretchFill(txt.gameObject);
+    }
+
+    // ────────────────────────────────────────
+    //  TOAST  (top center, fades in/out)
+    // ────────────────────────────────────────
+    private void BuildToast(Transform root)
+    {
+        float safeT = SafeTopPx() + 110f;
+
+        toastGO = new GameObject("Toast");
+        toastGO.transform.SetParent(root, false);
+        var rt = toastGO.AddComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 1);
+        rt.pivot = new Vector2(0.5f, 1);
+        rt.anchoredPosition = new Vector2(0, -safeT);
+        rt.sizeDelta = new Vector2(560, 72);
+
+        var bg = toastGO.AddComponent<Image>();
+        bg.color = COL_TOAST_BG;
+        bg.raycastTarget = false;
+
+        toastGO.AddComponent<CanvasGroup>();
+
+        toastTxt = AddTMP(toastGO.transform, "Txt", "", 28f, COL_WHITE,
+            TextAlignmentOptions.Center);
+        StretchFill(toastTxt.gameObject);
+    }
+
+    // ────────────────────────────────────────
+    //  MENU  (full-screen, light grey)
+    // ────────────────────────────────────────
+    private void BuildMenu(Transform root)
+    {
+        menuGO = new GameObject("MenuOverlay");
+        menuGO.transform.SetParent(root, false);
+        var rt = menuGO.AddComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+
+        var bg = menuGO.AddComponent<Image>();
+        bg.color = COL_MENU_BG;
+        bg.raycastTarget = true;
+
+        float safeT = SafeTopPx() + 30f;
+
+        // ── Title: "Menu" ──
+        var titleTmp = AddTMP(menuGO.transform, "Title",
+            "Menu", 48f, COL_DARK, TextAlignmentOptions.Center);
+        ((TextMeshProUGUI)titleTmp).fontStyle = FontStyles.Bold;
+        var trt = titleTmp.GetComponent<RectTransform>();
+        trt.anchorMin = trt.anchorMax = new Vector2(0.5f, 1);
+        trt.pivot = new Vector2(0.5f, 1);
+        trt.anchoredPosition = new Vector2(0, -(safeT + 12));
+        trt.sizeDelta = new Vector2(400, 72);
+
+        // ── Two pot image buttons (centered) ──
+        float imgSz  = 380f;
+        float imgGap = 36f;
+        float totalW = imgSz * 2 + imgGap;
+        float x1 = -totalW / 2f + imgSz / 2f;
+        float x2 = x1 + imgSz + imgGap;
+
+        var btn1 = MakePotImageButton(menuGO.transform, "Pot1Btn",
+            spr1, new Vector2(x1, 30), imgSz, 0);
+        sel1Img = btn1.GetComponent<Image>();
+
+        var btn2 = MakePotImageButton(menuGO.transform, "Pot2Btn",
+            spr2, new Vector2(x2, 30), imgSz, 1);
+        sel2Img = btn2.GetComponent<Image>();
+
+        // ── Done button ──
+        var doneGO = new GameObject("DoneBtn");
+        doneGO.transform.SetParent(menuGO.transform, false);
+        var drt = doneGO.AddComponent<RectTransform>();
+        drt.anchorMin = drt.anchorMax = new Vector2(0.5f, 0);
+        drt.pivot = new Vector2(0.5f, 0);
+        drt.anchoredPosition = new Vector2(0, 180);
+        drt.sizeDelta = new Vector2(340, 92);
+
+        var doneBg = doneGO.AddComponent<Image>();
+        doneBg.color = COL_BAR;
+        doneBg.raycastTarget = true;
+
+        var doneBtn = doneGO.AddComponent<Button>();
+        doneBtn.targetGraphic = doneBg;
+        NavNone(doneBtn);
+        doneBtn.onClick.AddListener(() => SetMenuOpen(false));
+
+        var doneTxt = AddTMP(doneGO.transform, "DoneTxt",
+            "Done", 34f, COL_WHITE, TextAlignmentOptions.Center);
+        ((TextMeshProUGUI)doneTxt).fontStyle = FontStyles.Bold;
+        StretchFill(doneTxt.gameObject);
+
+        HighlightSelection();
+    }
+
+    private Button MakePotImageButton(Transform parent, string name,
+        Sprite spr, Vector2 pos, float size, int index)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        var rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = pos;
+        rt.sizeDelta = new Vector2(size, size);
+
+        var bgImg = go.AddComponent<Image>();
+        bgImg.color = COL_WHITE;
+        bgImg.raycastTarget = true;
+
+        var btn = go.AddComponent<Button>();
+        btn.targetGraphic = bgImg;
+        NavNone(btn);
+
+        int idx = index;
+        btn.onClick.AddListener(() =>
+        {
+            selectedPotIndex = idx;
+            HighlightSelection();
+        });
+
+        if (spr != null)
+        {
+            var imgGO = new GameObject("Img");
+            imgGO.transform.SetParent(go.transform, false);
+            var irt = imgGO.AddComponent<RectTransform>();
+            irt.anchorMin = new Vector2(0.05f, 0.05f);
+            irt.anchorMax = new Vector2(0.95f, 0.95f);
+            irt.offsetMin = irt.offsetMax = Vector2.zero;
+            var img = imgGO.AddComponent<Image>();
+            img.sprite = spr;
+            img.preserveAspect = true;
+            img.raycastTarget = false;
+        }
+        return btn;
+    }
+
+    private void HighlightSelection()
+    {
+        // Olive-green border on selected, white on unselected
+        if (sel1Img) sel1Img.color = (selectedPotIndex == 0) ? COL_BAR : COL_WHITE;
+        if (sel2Img) sel2Img.color = (selectedPotIndex == 1) ? COL_BAR : COL_WHITE;
+    }
+
+    // ================================================================
+    //  MENU OPEN / CLOSE
+    // ================================================================
+    private void SetMenuOpen(bool open)
+    {
+        if (menuGO)  menuGO.SetActive(open);
+        if (barGO)   barGO.SetActive(!open);
+        if (open) SetDeleteMode(false);
+    }
+
+    // ================================================================
+    //  DELETE MODE
+    // ================================================================
+    private void SetDeleteMode(bool on)
+    {
+        deleteMode = on;
+        if (bannerGO) bannerGO.SetActive(on);
+
+        foreach (var obj in spawned)
+            if (obj) TintObject(obj, on);
+    }
+
+    private void TintObject(GameObject obj, bool tinted)
+    {
+        foreach (var r in obj.GetComponentsInChildren<Renderer>())
+        {
+            if (IgnoreRenderer(r)) continue;
+            if (tinted)
+            {
+                tintMPB.Clear();
+                if (r.sharedMaterial && r.sharedMaterial.HasProperty(PropBC))
+                    tintMPB.SetColor(PropBC,
+                        Color.Lerp(r.sharedMaterial.GetColor(PropBC), COL_DEL_TINT, 0.35f));
+                if (r.sharedMaterial && r.sharedMaterial.HasProperty(PropC))
+                    tintMPB.SetColor(PropC,
+                        Color.Lerp(r.sharedMaterial.GetColor(PropC), COL_DEL_TINT, 0.35f));
+                r.SetPropertyBlock(tintMPB);
+            }
+            else
+                r.SetPropertyBlock(clearMPB);
+        }
+    }
+
+    private void DeleteObject(GameObject obj)
+    {
+        if (!obj) return;
+        spawned.Remove(obj);
+        var info = obj.GetComponent<PotInfo>();
+        if (info != null)
+        {
+            if (info.measureLabel) Destroy(info.measureLabel);
+            // Destroying the anchor also destroys the pot (its child).
+            if (info.anchorObj) Destroy(info.anchorObj);
+            else                Destroy(obj);
+        }
+        else
+        {
+            Destroy(obj);
+        }
+        spawned.RemoveAll(o => o == null);
+        SetDeleteMode(false);
+        ShowToast("Pot removed");
+    }
+
+    // ================================================================
+    //  TOUCH INPUT
+    // ================================================================
+    private void HandleTouch()
+    {
+        if (menuGO && menuGO.activeSelf) return;
+
+        Vector2 pos = Vector2.zero;
+        bool tap = false;
+
+        var touches = ETouch.activeTouches;
+        if (touches.Count == 1
+            && touches[0].phase == UnityEngine.InputSystem.TouchPhase.Began)
+        {
+            pos = touches[0].screenPosition;
+            tap = true;
+        }
+
+#if UNITY_EDITOR
+        if (!tap && Mouse.current != null
+            && Mouse.current.leftButton.wasPressedThisFrame)
+        {
+            pos = Mouse.current.position.ReadValue();
+            tap = true;
+        }
+#endif
+
+        if (!tap) return;
+        if (IsOverUI(pos)) return;
+        if (Time.unscaledTime - lastTapTime < TAP_CD) return;
+        lastTapTime = Time.unscaledTime;
+
+        // Check if tapped an existing pot
+        Ray ray = arCamera.ScreenPointToRay(pos);
+        if (Physics.Raycast(ray, out RaycastHit hit, 100f))
+        {
+            GameObject tapped = FindSpawnedRoot(hit.collider.transform);
+            if (tapped != null)
+            {
+                if (deleteMode) { DeleteObject(tapped); return; }
+                // Show only this pot's measurement label
+                ShowLabelForPot(tapped);
+                return;
+            }
+        }
+
+        // In delete mode, tapping empty space does nothing
+        if (deleteMode) return;
+
+        // Direct tap raycast with strict plane filter
+        if (raycastManager.Raycast(pos, sHits, StrictPlaneFilter))
+        {
+            for (int i = 0; i < sHits.Count; i++)
+            {
+                var arHit = sHits[i];
+
+                float angle = Vector3.Angle(arHit.pose.up, Vector3.up);
+                if (angle >= 15f)
+                {
+                    ShowToast("Aim at a flat floor (walls not allowed)");
+                    return;
+                }
+
+                ARPlane plane = arHit.trackable as ARPlane;
+                if (plane != null)
+                {
+                    if (plane.alignment != PlaneAlignment.HorizontalUp) continue;
+                    if (plane.trackingState == TrackingState.None) continue;
+                }
+
+                PlaceObject(arHit.pose, plane);
+                return;
+            }
+        }
+
+        ShowToast("Please move phone slowly to find surface");
+    }
+
+    private bool IsOverUI(Vector2 screenPos)
+    {
+        if (EventSystem.current == null) return false;
+        var ped = new PointerEventData(EventSystem.current) { position = screenPos };
+        uiHits.Clear();
+        EventSystem.current.RaycastAll(ped, uiHits);
+        for (int i = 0; i < uiHits.Count; i++)
+        {
+            var go = uiHits[i].gameObject;
+            if (go.layer == 5) return true;
+            if (go.GetComponentInParent<Button>()) return true;
+        }
+        return false;
+    }
+
+    private GameObject FindSpawnedRoot(Transform t)
+    {
+        while (t != null)
+        {
+            if (spawned.Contains(t.gameObject)) return t.gameObject;
+            t = t.parent;
+        }
+        return null;
+    }
+
+    // ================================================================
+    //  PLACEMENT
+    // ================================================================
+    private void PlaceObject(Pose pose, ARPlane plane)
+    {
+        if (potPrefabs == null || potPrefabs.Length == 0) return;
+        int idx = Mathf.Clamp(selectedPotIndex, 0, potPrefabs.Length - 1);
+        GameObject prefab = potPrefabs[idx];
+        if (!prefab) return;
+
+        // SAFETY: only place when AR is fully tracking.
+        if (ARSession.state != ARSessionState.SessionTracking)
+        { ShowToast("Waiting for AR tracking…"); return; }
+
+        // STRICT: require a HorizontalUp plane that is actively tracked.
+        if (plane == null)
+        { ShowToast("No detected plane – aim at the floor"); return; }
+        if (plane.alignment != PlaneAlignment.HorizontalUp)
+        { ShowToast("Horizontal surface required"); return; }
+        if (plane.trackingState != TrackingState.Tracking)
+        { ShowToast("Surface lost – move phone slowly"); return; }
+
+        // ── OVERLAP CHECK ──
+        if (spawned.Count > 0)
+        {
+            Bounds candidate = EstimatePlacedBounds(pose, idx);
+            if (WouldOverlapExisting(candidate))
+            { ShowToast("Too close to another pot!"); return; }
+        }
+
+        // Always spawn a new pot
+        SpawnNewPot(pose, plane, idx, prefab);
+    }
+
+    /// <summary>Spawn a brand-new anchored pot.</summary>
+    private void SpawnNewPot(Pose pose, ARPlane plane, int idx, GameObject prefab)
+    {
+        // Create a persistent ARAnchor attached to the plane.
+        // Pot is parented to this anchor so it never drifts.
+        if (!TryAnchor(pose, plane, out ARAnchor anchor))
+            return;
+
+        // Instantiate under anchor
+        GameObject obj = Instantiate(prefab, anchor.transform);
+        obj.transform.localPosition = Vector3.zero;
+        obj.transform.localRotation = Quaternion.identity;
+
+        Debug.Log($"[AR] SpawnNewPot: anchor={anchor.gameObject.name}"
+            + $", anchorParent={anchor.transform.parent?.name}"
+            + $", trackingState={anchor.trackingState}"
+            + $", worldPos={anchor.transform.position}");
+
+        // Normalize height to real-world cm (always applied)
+        Vector3 ns = NormalizeHeight(obj, GetRealHeight(idx));
+        obj.transform.localScale = ns * defaultScale;
+
+        // Face camera
+        if (faceCameraOnPlace && arCamera)
+        {
+            Vector3 dir = arCamera.transform.position - pose.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude > 0.001f)
+                obj.transform.rotation =
+                    Quaternion.LookRotation(-dir.normalized)
+                    * Quaternion.Euler(prefabRotationOffsetEuler);
+        }
+
+        FitCollider(obj);
+        GroundChild(obj);
+        StripPhysicsAndScripts(obj);
+
+        var info     = obj.AddComponent<PotInfo>();
+        info.idx     = idx;
+        info.surfaceY = pose.position.y + yOffset;
+        info.normScale = ns;
+        info.anchorObj = anchor.gameObject;
+
+        // NO per-frame freeze.  The pot is parented to the ARAnchor,
+        // all physics/XRI components are destroyed, and all other
+        // MonoBehaviours are disabled.  Nothing can move this transform.
+        // The ARAnchor handles world-space stability.
+
+        // ── Measurement: only the newest pot shows its label ──
+        info.measureLabel = CreateMeasureLabel(obj, idx);
+
+        // Start diagnostic: log world position after 2 s to verify
+        // the pot has not drifted from where it was placed.
+        StartCoroutine(VerifyPlacement(obj, obj.transform.position));
+        spawned.Add(obj);
+        ShowLabelForPot(obj);
+        ShowToast("New pot added!");
+    }
+
+    /// <summary>
+    /// Diagnostic: log world position after a delay to detect drift.
+    /// Runs ONCE per pot, never modifies the transform.
+    /// </summary>
+    private IEnumerator VerifyPlacement(GameObject pot, Vector3 expectedWorldPos)
+    {
+        yield return new WaitForSeconds(2f);
+        if (pot == null) yield break;
+        float drift = Vector3.Distance(pot.transform.position, expectedWorldPos);
+        var info = pot.GetComponent<PotInfo>();
+        string parentChain = "";
+        Transform t = pot.transform;
+        while (t != null) { parentChain += t.name + " → "; t = t.parent; }
+        Debug.Log($"[AR] PlacementVerify: drift={drift:F4}m, pos={pot.transform.position}"
+            + $", expected={expectedWorldPos}, parent={parentChain}"
+            + $", anchor={info?.anchorObj?.name}");
+        if (drift > 0.05f)
+            Debug.LogWarning("[AR] SIGNIFICANT DRIFT! Pot moved >" + drift.ToString("F3") + "m in 2 seconds.");
+    }
+
+    /// <summary>
+    /// Show only the given pot's measurement label; hide all others.
+    /// </summary>
+    private void ShowLabelForPot(GameObject pot)
+    {
+        activeLabelPot = pot;
+        foreach (var obj in spawned)
+        {
+            if (!obj) continue;
+            var pi = obj.GetComponent<PotInfo>();
+            if (pi == null || !pi.measureLabel) continue;
+            pi.measureLabel.SetActive(obj == pot);
+        }
+        // Also handle the new pot itself (not yet in spawned list during SpawnNewPot)
+        if (pot != null)
+        {
+            var pi = pot.GetComponent<PotInfo>();
+            if (pi != null && pi.measureLabel)
+                pi.measureLabel.SetActive(true);
+        }
+    }
+
+    // ================================================================
+    //  WORLD-SPACE MEASUREMENT LABEL
+    //  White card + grey text (H / W) + arrow pointing at pot
+    // ================================================================
+    // Z-test mode property used by Unity UI / TMP shaders
+    private static readonly int ZTestMode = Shader.PropertyToID("unity_GUIZTestMode");
+    // Use standard depth testing so labels are hidden behind real-world
+    // geometry (walls, furniture) when occlusion is active.  ZTest Always
+    // (value 8) was previously used but caused labels to render through walls.
+    private const int ZTEST_LEQUAL = 4; // CompareFunction.LessEqual
+
+    private GameObject CreateMeasureLabel(GameObject pot, int idx)
+    {
+        // Use LOCAL bounds × lossyScale for rotation-independent accuracy
+        Bounds lb = LocalBounds(pot);
+        if (lb.size == Vector3.zero) return null;
+
+        Vector3 ls = pot.transform.lossyScale;
+        float hCm = lb.size.y * Mathf.Abs(ls.y) * 100f;
+        float wCm = Mathf.Max(lb.size.x * Mathf.Abs(ls.x),
+                               lb.size.z * Mathf.Abs(ls.z)) * 100f;
+
+        // World bounds still needed for positioning the label above the pot
+        Bounds wb = WorldBounds(pot);
+
+        // Create world-space Canvas
+        var labelGO = new GameObject("MeasureLabel");
+        // Parent to the anchor (pot's parent) so the label is not affected
+        // by pot scale, but still tracks the anchor's AR-corrected position.
+        Transform labelParent = pot.transform.parent ? pot.transform.parent : pot.transform;
+        labelGO.transform.SetParent(labelParent, true);
+
+        var cv = labelGO.AddComponent<Canvas>();
+        cv.renderMode   = RenderMode.WorldSpace;
+        cv.sortingOrder = 200;
+        labelGO.AddComponent<CanvasScaler>().dynamicPixelsPerUnit = 100;
+
+        var cvRT = labelGO.GetComponent<RectTransform>();
+        cvRT.sizeDelta = new Vector2(240, 150);
+        float s = 0.0008f;
+        cvRT.localScale = new Vector3(s, s, s);
+
+        // Position above the pot
+        labelGO.transform.position =
+            wb.center + new Vector3(0, wb.extents.y + 0.08f, 0);
+
+        // ── White card ──
+        var card = new GameObject("Card");
+        card.transform.SetParent(cvRT, false);
+        var crt = card.AddComponent<RectTransform>();
+        crt.anchorMin = new Vector2(0, 0.22f);
+        crt.anchorMax = Vector2.one;
+        crt.offsetMin = crt.offsetMax = Vector2.zero;
+        var cardImg = card.AddComponent<Image>();
+        cardImg.color = COL_WHITE;
+        cardImg.raycastTarget = false;
+
+        // ── Height text (top half of card) ──
+        var hGO = new GameObject("HTxt");
+        hGO.transform.SetParent(card.transform, false);
+        var htmp = hGO.AddComponent<TextMeshProUGUI>();
+        htmp.text      = string.Format("H: {0:F1} cm", hCm);
+        htmp.fontSize  = 28;
+        htmp.color     = COL_MGREY;
+        htmp.alignment = TextAlignmentOptions.Center;
+        htmp.raycastTarget = false;
+        var hrt = hGO.GetComponent<RectTransform>();
+        hrt.anchorMin = new Vector2(0, 0.5f);
+        hrt.anchorMax = Vector2.one;
+        hrt.offsetMin = hrt.offsetMax = Vector2.zero;
+
+        // ── Width text (bottom half of card) ──
+        var wGO = new GameObject("WTxt");
+        wGO.transform.SetParent(card.transform, false);
+        var wtmp = wGO.AddComponent<TextMeshProUGUI>();
+        wtmp.text      = string.Format("W: {0:F1} cm", wCm);
+        wtmp.fontSize  = 28;
+        wtmp.color     = COL_MGREY;
+        wtmp.alignment = TextAlignmentOptions.Center;
+        wtmp.raycastTarget = false;
+        var wrt = wGO.GetComponent<RectTransform>();
+        wrt.anchorMin = Vector2.zero;
+        wrt.anchorMax = new Vector2(1, 0.5f);
+        wrt.offsetMin = wrt.offsetMax = Vector2.zero;
+
+        // ── Arrow stem (thin line pointing down) ──
+        var stem = new GameObject("Stem");
+        stem.transform.SetParent(cvRT, false);
+        var srt = stem.AddComponent<RectTransform>();
+        srt.anchorMin = srt.anchorMax = new Vector2(0.5f, 0);
+        srt.pivot = new Vector2(0.5f, 1);
+        srt.anchoredPosition = new Vector2(0, cvRT.sizeDelta.y * 0.22f);
+        srt.sizeDelta = new Vector2(4, 28);
+        var stemImg = stem.AddComponent<Image>();
+        stemImg.color = COL_MGREY;
+        stemImg.raycastTarget = false;
+
+        // ── Arrowhead (small rotated square) ──
+        var head = new GameObject("Head");
+        head.transform.SetParent(cvRT, false);
+        var hdrt = head.AddComponent<RectTransform>();
+        hdrt.anchorMin = hdrt.anchorMax = new Vector2(0.5f, 0);
+        hdrt.pivot = new Vector2(0.5f, 0.5f);
+        hdrt.anchoredPosition = new Vector2(0, -6);
+        hdrt.sizeDelta = new Vector2(14, 14);
+        hdrt.localRotation = Quaternion.Euler(0, 0, 45);
+        var headImg = head.AddComponent<Image>();
+        headImg.color = COL_MGREY;
+        headImg.raycastTarget = false;
+
+        // ── Standard depth testing (ZTest LEqual) ──
+        // Labels render normally with depth: visible above the pot (because
+        // they are positioned higher), hidden behind walls/furniture when
+        // environment occlusion provides depth to the camera background.
+        foreach (var img in labelGO.GetComponentsInChildren<Image>(true))
+        {
+            Material m = new Material(img.material ?? Canvas.GetDefaultCanvasMaterial());
+            m.SetInt(ZTestMode, ZTEST_LEQUAL);
+            img.material = m;
+        }
+        foreach (var tmp in labelGO.GetComponentsInChildren<TextMeshProUGUI>(true))
+        {
+            Material m = new Material(tmp.fontSharedMaterial);
+            m.SetInt(ZTestMode, ZTEST_LEQUAL);
+            tmp.fontSharedMaterial = m;
+        }
+
+        return labelGO;
+    }
+
+    private void BillboardLabels()
+    {
+        if (!arCamera) return;
+        foreach (var obj in spawned)
+        {
+            if (!obj) continue;
+            var info = obj.GetComponent<PotInfo>();
+            if (info == null || !info.measureLabel
+                || !info.measureLabel.activeSelf) continue;
+            var t = info.measureLabel.transform;
+            Vector3 dir = t.position - arCamera.transform.position;
+            if (dir.sqrMagnitude > 0.001f)
+                t.rotation = Quaternion.LookRotation(dir);
+        }
+    }
+
+    // ================================================================
+    //  PINCH SCALE
+    // ================================================================
+    private void HandlePinch()
+    {
+        var touches = ETouch.activeTouches;
+        if (touches.Count != 2 || deleteMode) return;
+
+        var t0 = touches[0];
+        var t1 = touches[1];
+        float dist = Vector2.Distance(t0.screenPosition, t1.screenPosition);
+
+        if (t0.phase == UnityEngine.InputSystem.TouchPhase.Began
+            || t1.phase == UnityEngine.InputSystem.TouchPhase.Began)
+        {
+            // Find target from pinch center raycast
+            Vector2 mid = (t0.screenPosition + t1.screenPosition) * 0.5f;
+            Ray ray = arCamera.ScreenPointToRay(mid);
+            pinchTarget = null;
+            if (Physics.Raycast(ray, out RaycastHit hit, 100f))
+                pinchTarget = FindSpawnedRoot(hit.collider.transform);
+            // Fallback to last placed
+            if (pinchTarget == null && spawned.Count > 0)
+                pinchTarget = spawned[spawned.Count - 1];
+            if (pinchTarget == null) return;
+
+            pinchStartDist  = dist;
+            pinchStartScale = pinchTarget.transform.localScale;
+            return;
+        }
+
+        if (pinchTarget == null || pinchStartDist < 1f) return;
+
+        float ratio = dist / pinchStartDist;
+        var info = pinchTarget.GetComponent<PotInfo>();
+
+        Vector3 bs = info != null ? info.normScale : Vector3.one;
+        float curFactor = pinchStartScale.x / Mathf.Max(bs.x, 0.0001f);
+        float tgtFactor = Mathf.Clamp(curFactor * ratio, minScale, maxScale);
+        pinchTarget.transform.localScale = bs * tgtFactor;
+
+        if (info != null)
+            GroundChild(pinchTarget);
+
+        // Overlap guard: if scaling UP causes collision, revert to previous scale
+        if (tgtFactor > curFactor && spawned.Count > 1)
+        {
+            Bounds scaled = WorldBounds(pinchTarget);
+            if (scaled.size != Vector3.zero && WouldOverlapExisting(scaled, pinchTarget))
+            {
+                pinchTarget.transform.localScale = pinchStartScale;
+                if (info != null)
+                    GroundChild(pinchTarget);
+            }
+        }
+
+        // Rebuild measurement label to reflect new size
+        if (info != null)
+        {
+            if (info.measureLabel) Destroy(info.measureLabel);
+            info.measureLabel = CreateMeasureLabel(pinchTarget, info.idx);
+        }
+    }
+
+    // ================================================================
+    //  SCREENSHOT
+    // ================================================================
+    private void TakeScreenshot() => StartCoroutine(CaptureCoroutine());
+
+    private IEnumerator CaptureCoroutine()
+    {
+        // Remember UI state and hide
+        bool barOn    = barGO && barGO.activeSelf;
+        bool banOn    = bannerGO && bannerGO.activeSelf;
+        bool toastOn  = toastGO && toastGO.activeSelf;
+        if (barGO)    barGO.SetActive(false);
+        if (bannerGO) bannerGO.SetActive(false);
+        if (toastGO)  toastGO.SetActive(false);
+
+        yield return new WaitForEndOfFrame();
+
+        Texture2D tex = ScreenCapture.CaptureScreenshotAsTexture();
+        if (tex == null)
+        {
+            RestoreUI(barOn, banOn, toastOn);
+            ShowToast("Capture failed");
+            yield break;
+        }
+
+        byte[] png = tex.EncodeToPNG();
+        Destroy(tex);
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+        string fn = "MyDesign_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".png";
+        string folder = "/storage/emulated/0/DCIM/MyDesigns/";
+        try
+        {
+            Directory.CreateDirectory(folder);
+            string path = Path.Combine(folder, fn);
+            File.WriteAllBytes(path, png);
+            using (var scanClass = new AndroidJavaClass("android.media.MediaScannerConnection"))
+            using (var player    = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+            using (var ctx       = player.GetStatic<AndroidJavaObject>("currentActivity"))
+                scanClass.CallStatic("scanFile", ctx, new string[] { path }, null, null);
+        }
+        catch (Exception e) { Debug.LogError("Screenshot: " + e.Message); }
+#else
+        string dir = Path.Combine(Application.persistentDataPath, screenshotFolderName);
+        Directory.CreateDirectory(dir);
+        File.WriteAllBytes(
+            Path.Combine(dir, "MyDesign_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".png"),
+            png);
+#endif
+
+        RestoreUI(barOn, banOn, toastOn);
+        ShowToast("Screenshot Saved!");
+    }
+
+    private void RestoreUI(bool bar, bool banner, bool toast)
+    {
+        if (barGO)    barGO.SetActive(bar);
+        if (bannerGO) bannerGO.SetActive(banner);
+        if (toastGO)  toastGO.SetActive(toast);
+    }
+
+    // ================================================================
+    //  TOAST  (animated fade in / out)
+    // ================================================================
+    private void ShowToast(string msg)
+    {
+        if (!toastGO) return;
+        if (toastCR != null) StopCoroutine(toastCR);
+        if (toastTxt) toastTxt.text = msg;
+        toastCR = StartCoroutine(ToastAnimation());
+    }
+
+    private IEnumerator ToastAnimation()
+    {
+        toastGO.SetActive(true);
+        var cg = toastGO.GetComponent<CanvasGroup>();
+        cg.alpha = 0;
+
+        // Fade in
+        for (float t = 0; t < 0.2f; t += Time.unscaledDeltaTime)
+        {
+            cg.alpha = t / 0.2f;
+            yield return null;
+        }
+        cg.alpha = 1;
+
+        yield return new WaitForSecondsRealtime(2f);
+
+        // Fade out
+        for (float t = 0; t < 0.3f; t += Time.unscaledDeltaTime)
+        {
+            cg.alpha = 1f - t / 0.3f;
+            yield return null;
+        }
+        cg.alpha = 0;
+        toastGO.SetActive(false);
+        toastCR = null;
+    }
+
+    // ================================================================
+    //  AR HELPERS
+    // ================================================================
+
+    /// <summary>
+    /// Remove ALL physics, animation, XRI interaction, and unknown scripts
+    /// from a placed pot so nothing can ever move it after placement.
+    /// </summary>
+    private static void StripPhysicsAndScripts(GameObject root)
+    {
+        // Destroy in dependency order: Joints → Rigidbodies → others
+        foreach (var j in root.GetComponentsInChildren<Joint>(true))
+            Destroy(j);
+        // Neutralize Rigidbodies BEFORE destroying to prevent even
+        // a single frame of physics forces being applied.
+        foreach (var rb in root.GetComponentsInChildren<Rigidbody>(true))
+        {
+            rb.isKinematic = true;
+            rb.detectCollisions = false;
+            Destroy(rb);
+        }
+        foreach (var cl in root.GetComponentsInChildren<Cloth>(true))
+            Destroy(cl);
+        foreach (var a in root.GetComponentsInChildren<Animator>(true))
+            Destroy(a);
+        foreach (var a in root.GetComponentsInChildren<Animation>(true))
+            Destroy(a);
+        // Destroy ALL XRI interactable/interactor components so the XR Origin's
+        // Screen Space Ray Interactor can NEVER select, grab, or move the pot.
+        // We use the base type name check so we don't need a hard reference to
+        // the XRI assembly — the types may or may not be present.
+        foreach (var mb in root.GetComponentsInChildren<MonoBehaviour>(true))
+        {
+            if (mb is PotInfo) continue;
+            string typeName = mb.GetType().Name;
+            // XRI interactables & interactors that could move the object
+            if (typeName.Contains("Interactable") || typeName.Contains("Interactor")
+                || typeName.Contains("ARTranslation") || typeName.Contains("ARRotation")
+                || typeName.Contains("ARScale") || typeName.Contains("ARPlacement")
+                || typeName.Contains("Transformer") || typeName.Contains("Manipulator"))
+            {
+                Destroy(mb);
+                continue;
+            }
+            mb.enabled = false;
+        }
+    }
+
+    /// <summary>
+    /// Check if placing a pot with the given world-space bounds would overlap
+    /// any existing pot. Uses XZ circular footprint so pots behind each other
+    /// (different Z) are allowed. Pots on different surfaces (different Y) are
+    /// always allowed.
+    /// </summary>
+    private bool WouldOverlapExisting(Bounds candidate, GameObject exclude = null)
+    {
+        if (spawned.Count == 0) return false;
+
+        float rA = Mathf.Max(candidate.extents.x, candidate.extents.z) * 0.6f + minPotGapMetres;
+        Vector2 cXZ = new Vector2(candidate.center.x, candidate.center.z);
+
+        for (int i = 0; i < spawned.Count; i++)
+        {
+            var existing = spawned[i];
+            if (!existing) continue;
+            if (existing == exclude) continue;
+            Bounds eb = WorldBounds(existing);
+            if (eb.size == Vector3.zero) continue;
+
+            // Different surfaces (e.g. table vs floor) never conflict
+            float yDiff = Mathf.Abs(candidate.center.y - eb.center.y);
+            if (yDiff > 0.15f) continue;
+
+            // XZ circular footprint overlap
+            float rB = Mathf.Max(eb.extents.x, eb.extents.z) * 0.6f;
+            float xzDist = Vector2.Distance(cXZ,
+                new Vector2(eb.center.x, eb.center.z));
+            if (xzDist < rA + rB)
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Estimate the world bounds of a pot that WOULD be placed at the given
+    /// pose with the given prefab index, without actually instantiating.
+    /// Uses LocalBounds of the prefab for a tighter estimate and applies
+    /// a 0.8× shrink factor to avoid false-positive overlap rejections
+    /// caused by AABB inflation.
+    /// </summary>
+    private Bounds EstimatePlacedBounds(Pose pose, int idx)
+    {
+        float rh = GetRealHeight(idx);
+        GameObject prefab = potPrefabs[Mathf.Clamp(idx, 0, potPrefabs.Length - 1)];
+        if (!prefab) return new Bounds(pose.position, Vector3.zero);
+
+        // Compute local-space bounds of prefab (tight, rotation-independent)
+        Bounds lb = LocalBounds(prefab);
+        if (lb.size == Vector3.zero)
+            return new Bounds(pose.position, Vector3.zero);
+
+        // Apply height normalization + defaultScale (always applied)
+        float scaleFactor = defaultScale;
+        float normF = (rh / 100f) / Mathf.Max(0.0001f, lb.size.y);
+        scaleFactor *= normF;
+
+        // Shrink by 0.8× to compensate for AABB inflation from rotated meshes
+        Vector3 size = lb.size * scaleFactor * 0.8f;
+        // Center it at the placement pose (bottom on the surface)
+        Vector3 center = pose.position + new Vector3(0, size.y * 0.5f, 0);
+        return new Bounds(center, size);
+    }
+    private bool TryAnchor(Pose pose, ARPlane plane, out ARAnchor anchor)
+    {
+        anchor = null;
+        if (anchorManager == null)
+        {
+            Debug.LogError("[AR] TryAnchor: anchorManager is NULL — pot cannot be anchored!");
+            ShowToast("Anchor system unavailable");
+            return false;
+        }
+
+        // STRICT: require a tracked plane – no fallback, no mid-air anchors.
+        if (plane == null)
+        { ShowToast("No plane detected – aim at a flat floor"); return false; }
+
+        if (plane.trackingState != TrackingState.Tracking)
+        { ShowToast("Surface tracking lost – move phone slowly"); return false; }
+
+        // Plane-attached anchor: highest stability, locked to physical world.
+        anchor = anchorManager.AttachAnchor(plane, pose);
+
+        if (anchor == null)
+        { ShowToast("Anchor creation failed – try another spot"); return false; }
+
+        return true;
+    }
+
+    private void GroundChild(GameObject obj)
+    {
+        Physics.SyncTransforms();
+        Bounds b = WorldBounds(obj);
+        if (b.size == Vector3.zero) return;
+
+        float botOff = b.min.y - obj.transform.position.y;
+        Transform anc = obj.transform.parent;
+        if (!anc) return;   // safety: pot must be parented to an anchor
+
+        float surfY = anc.position.y + yOffset;
+        Vector3 lp  = obj.transform.localPosition;
+        lp.y = (surfY - anc.position.y) - botOff;
+        obj.transform.localPosition = lp;
+    }
+
+    private Bounds WorldBounds(GameObject root)
+    {
+        var rs = root.GetComponentsInChildren<Renderer>(true);
+        Renderer first = null;
+        foreach (var r in rs)
+            if (!IgnoreRenderer(r)) { first = r; break; }
+        if (!first) return new Bounds(root.transform.position, Vector3.zero);
+        Bounds b = first.bounds;
+        foreach (var r in rs)
+            if (!IgnoreRenderer(r)) b.Encapsulate(r.bounds);
+        return b;
+    }
+
+    /// <summary>
+    /// Compute tight bounds in the root object's LOCAL space.
+    /// Unlike WorldBounds, these do NOT inflate when the pot is rotated.
+    /// Multiply .size by lossyScale to get real-world dimensions.
+    /// </summary>
+    private Bounds LocalBounds(GameObject root)
+    {
+        var rs = root.GetComponentsInChildren<Renderer>(true);
+        Matrix4x4 w2l = root.transform.worldToLocalMatrix;
+        Bounds lb = new Bounds(Vector3.zero, Vector3.zero);
+        bool first = true;
+        foreach (var r in rs)
+        {
+            if (IgnoreRenderer(r)) continue;
+            Bounds wb = r.bounds;
+            Vector3 mn = wb.min, mx = wb.max;
+            for (int i = 0; i < 8; i++)
+            {
+                Vector3 corner = new Vector3(
+                    (i & 1) == 0 ? mn.x : mx.x,
+                    (i & 2) == 0 ? mn.y : mx.y,
+                    (i & 4) == 0 ? mn.z : mx.z);
+                Vector3 lp = w2l.MultiplyPoint3x4(corner);
+                if (first) { lb = new Bounds(lp, Vector3.zero); first = false; }
+                else lb.Encapsulate(lp);
+            }
+        }
+        return lb;
+    }
+
+    private bool IgnoreRenderer(Renderer r)
+    {
+        if (!r) return true;
+        if (ignoreRendererNameContains == null) return false;
+        string n = r.gameObject.name.ToLowerInvariant();
+        foreach (var s in ignoreRendererNameContains)
+            if (!string.IsNullOrEmpty(s) && n.Contains(s.ToLowerInvariant()))
+                return true;
+        return false;
+    }
+
+    private void FitCollider(GameObject root)
+    {
+        Bounds w = WorldBounds(root);
+        if (w.size == Vector3.zero) return;
+        BoxCollider bc = root.GetComponent<BoxCollider>()
+                         ?? root.AddComponent<BoxCollider>();
+        bc.center = root.transform.InverseTransformPoint(w.center);
+        Vector3 ls = root.transform.lossyScale;
+        bc.size = new Vector3(
+            ls.x != 0 ? w.size.x / ls.x : w.size.x,
+            ls.y != 0 ? w.size.y / ls.y : w.size.y,
+            ls.z != 0 ? w.size.z / ls.z : w.size.z);
+    }
+
+    private Vector3 NormalizeHeight(GameObject root, float cm)
+    {
+        Bounds b = WorldBounds(root);
+        float f = (cm / 100f) / Mathf.Max(0.0001f, b.size.y);
+        root.transform.localScale = Vector3.one * f;
+        return root.transform.localScale;
+    }
+
+    private const float DEFAULT_POT_HEIGHT_CM = 30f;
+
+    private float GetRealHeight(int i)
+    {
+        if (potRealHeightCm == null || i < 0 || i >= potRealHeightCm.Length)
+            return DEFAULT_POT_HEIGHT_CM;
+        float h = potRealHeightCm[i];
+        return h > 0.01f ? h : DEFAULT_POT_HEIGHT_CM;
+    }
+
+    // ================================================================
+    //  UI FACTORY HELPERS
+    // ================================================================
+    private float SafeTopPx()
+    {
+        return (Screen.height - Screen.safeArea.yMax) / canvas.scaleFactor;
+    }
+
+    private TMP_Text AddTMP(Transform parent, string name, string text,
+        float fontSize, Color color, TextAlignmentOptions align)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        var rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+        var tmp = go.AddComponent<TextMeshProUGUI>();
+        tmp.text      = text;
+        tmp.fontSize  = fontSize;
+        tmp.color     = color;
+        tmp.alignment = align;
+        tmp.raycastTarget = false;
+        return tmp;
+    }
+
+    private void StretchFill(GameObject go)
+    {
+        var rt = go.GetComponent<RectTransform>();
+        if (!rt) return;
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = rt.offsetMax = Vector2.zero;
+    }
+
+    private Button MakeBarIcon(Transform parent, string name, Vector2 offset)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        var rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.sizeDelta = new Vector2(90, 90);
+        rt.anchoredPosition = offset;
+
+        var img = go.AddComponent<Image>();
+        img.color = Color.clear;      // no background
+        img.raycastTarget = true;
+
+        var btn = go.AddComponent<Button>();
+        btn.targetGraphic = img;
+        var cb = btn.colors;
+        cb.normalColor      = Color.white;
+        cb.pressedColor     = new Color(1, 1, 1, 0.5f);
+        cb.highlightedColor = new Color(1, 1, 1, 0.8f);
+        cb.fadeDuration     = 0.08f;
+        btn.colors = cb;
+        NavNone(btn);
+        return btn;
+    }
+
+    private void NavNone(Button b)
+    {
+        var nav = b.navigation;
+        nav.mode = Navigation.Mode.None;
+        b.navigation = nav;
+    }
+
+    private GameObject MakeIconRect(Transform parent, string name,
+        Vector2 size, Vector2 offset, Color color)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        var rt = go.AddComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.sizeDelta = size;
+        rt.anchoredPosition = offset;
+        var img = go.AddComponent<Image>();
+        img.color = color;
+        img.raycastTarget = false;
+        return go;
+    }
+
+    // ================================================================
+    //  ICON DRAWING  (pure rectangles, white, no bg circle)
+    // ================================================================
+    private void DrawCameraIcon(Transform p, float sz, Color c)
+    {
+        // Camera body
+        MakeIconRect(p, "Body",
+            new Vector2(sz, sz * 0.62f),
+            new Vector2(0, -sz * 0.04f), c);
+        // Top bump
+        MakeIconRect(p, "Bump",
+            new Vector2(sz * 0.30f, sz * 0.15f),
+            new Vector2(0, sz * 0.36f), c);
+        // Lens (dark cutout)
+        MakeIconRect(p, "Lens",
+            new Vector2(sz * 0.24f, sz * 0.24f),
+            new Vector2(0, -sz * 0.04f),
+            new Color(c.r, c.g, c.b, 0.30f));
+    }
+
+    private void DrawHamburgerIcon(Transform p, float sz, Color c)
+    {
+        float thick = sz * 0.10f;
+        float gap   = sz * 0.24f;
+        MakeIconRect(p, "L1", new Vector2(sz * 0.68f, thick), new Vector2(0, gap), c);
+        MakeIconRect(p, "L2", new Vector2(sz * 0.68f, thick), Vector2.zero, c);
+        MakeIconRect(p, "L3", new Vector2(sz * 0.68f, thick), new Vector2(0, -gap), c);
+    }
+
+    private void DrawTrashIcon(Transform p, float sz, Color c)
+    {
+        float top = sz * 0.22f;
+        // Handle
+        MakeIconRect(p, "Handle",
+            new Vector2(sz * 0.24f, sz * 0.12f),
+            new Vector2(0, top + sz * 0.12f), c);
+        // Lid
+        MakeIconRect(p, "Lid",
+            new Vector2(sz * 0.72f, sz * 0.09f),
+            new Vector2(0, top), c);
+        // Body
+        MakeIconRect(p, "Body",
+            new Vector2(sz * 0.54f, sz * 0.52f),
+            new Vector2(0, top - sz * 0.36f), c);
+    }
+
+    private void DrawBackArrow(Transform p, float sz, Color c)
+    {
+        float thick = sz * 0.14f;
+        // Shaft
+        MakeIconRect(p, "Shaft",
+            new Vector2(sz * 0.65f, thick), Vector2.zero, c);
+        // Upper arm
+        var a1 = MakeIconRect(p, "Arm1",
+            new Vector2(sz * 0.42f, thick),
+            new Vector2(-sz * 0.14f, sz * 0.12f), c);
+        a1.GetComponent<RectTransform>().localRotation =
+            Quaternion.Euler(0, 0, 40);
+        // Lower arm
+        var a2 = MakeIconRect(p, "Arm2",
+            new Vector2(sz * 0.42f, thick),
+            new Vector2(-sz * 0.14f, -sz * 0.12f), c);
+        a2.GetComponent<RectTransform>().localRotation =
+            Quaternion.Euler(0, 0, -40);
+    }
+}

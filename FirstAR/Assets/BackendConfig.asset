@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec416e957fe92a242a15062f98cfe45d, type: 3}
   m_Name: BackendConfig
   m_EditorClassIdentifier: Assembly-CSharp::BackendConfig
-  baseUrl: http://192.168.1.217:8081
+  baseUrl: http://192.168.1.6:8081
   authLogin: /api/auth/login
   authRegister: /api/auth/register
   authRefreshToken: /api/auth/refresh-token

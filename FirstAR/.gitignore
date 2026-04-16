@@ -1,0 +1,32 @@
+# Unity generated
+/Library/
+/Temp/
+/Obj/
+/Build/
+/Builds/
+/Logs/
+/UserSettings/
+
+# Unity3D generated meta data
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Unity3D generated file on crash reports
+sysinfo.txt
+
+# Builds
+*.apk
+*.aab
+*.unitypackage
+
+# Burst
+*.burst-llvm*
+
+# OS generated
+.DS_Store
+Thumbs.db
+
+# Build output
+/FirstAR_BurstDebugInformation_DoNotShip/
+/runwithiman_BackUpThisFolder_ButDontShipItWithYourGame/

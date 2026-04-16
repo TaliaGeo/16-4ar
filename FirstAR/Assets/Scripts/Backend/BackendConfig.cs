@@ -8,7 +8,7 @@ public class BackendConfig : ScriptableObject
 {
     [Header("Server")]
     [Tooltip("Base URL of the Spring Boot backend (no trailing slash). Use PC WiFi IP for real device.")]
-    public string baseUrl = "http://192.168.1.217:8081";
+    public string baseUrl = "http://192.168.1.6:8081";
 
     [Header("Endpoints")]
     public string authLogin = "/api/auth/login";
@@ -28,6 +28,12 @@ public class BackendConfig : ScriptableObject
     public string notifications = "/api/user/notifications";
     public string notificationsUnreadCount = "/api/user/notifications/unread-count";
     public string healthCheck = "/api/security/health";
+
+    [Header("Design Management")]
+    public string designsList = "/api/user/designs";
+    public string designsRename = "/api/user/designs/{id}/rename";
+    public string designsDelete = "/api/user/designs/{id}";
+    public string designsUpload = "/api/user/designs/upload";
 
     [Header("Auto Login (set for demo/testing)")]
     [Tooltip("Email to auto-login with on startup. Leave empty to skip auto-login.")]

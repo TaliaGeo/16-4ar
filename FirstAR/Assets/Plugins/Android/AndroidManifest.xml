@@ -2,6 +2,9 @@
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+    <queries>
+        <package android:name="com.example.graduation_project_frontend" />
+    </queries>
     <application
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config">

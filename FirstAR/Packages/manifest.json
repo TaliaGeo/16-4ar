@@ -1,13 +1,7 @@
 {
   "dependencies": {
-    "com.unity.ai.assistant": "1.0.0-pre.12",
-    "com.unity.ai.generators": "1.0.0-pre.20",
-    "com.unity.ai.inference": "2.4.1",
-    "com.unity.feature.development": "1.0.2",
     "com.unity.inputsystem": "1.17.0",
-    "com.unity.learn.iet-framework": "5.0.2",
     "com.unity.mobile.android-logcat": "1.4.6",
-    "com.unity.multiplayer.center": "1.0.1",
     "com.unity.render-pipelines.universal": "17.3.0",
     "com.unity.timeline": "1.8.9",
     "com.unity.xr.arcore": "6.3.1",

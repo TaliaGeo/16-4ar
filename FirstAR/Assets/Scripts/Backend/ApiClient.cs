@@ -66,32 +66,51 @@ public class ApiClient : MonoBehaviour
         _refreshToken = PlayerPrefs.GetString(REFRESH_KEY, "");
 
 #if UNITY_ANDROID && !UNITY_EDITOR
-        // If no saved token, try to read JWT passed from the Flutter app via Intent extra
-        if (string.IsNullOrEmpty(_accessToken))
+        // Always prefer token provided by Flutter Intent so AR app uses the same frontend user.
+        TryLoadTokenFromFlutterIntent();
+#endif
+
+        Debug.Log("[ApiClient] Token state loaded. Authenticated=" + IsAuthenticated);
+    }
+
+#if UNITY_ANDROID && !UNITY_EDITOR
+    public void TryLoadTokenFromFlutterIntent()
+    {
+        try
         {
-            try
+            using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+            using (var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity"))
+            using (var intent = activity.Call<AndroidJavaObject>("getIntent"))
             {
-                using (var unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
-                using (var activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity"))
-                using (var intent = activity.Call<AndroidJavaObject>("getIntent"))
+                string intentToken = intent.Call<string>("getStringExtra", "jwt_token");
+                string intentBaseUrl = intent.Call<string>("getStringExtra", "api_base_url");
+
+                if (!string.IsNullOrEmpty(intentBaseUrl) && config != null && config.baseUrl != intentBaseUrl)
                 {
-                    string intentToken = intent.Call<string>("getStringExtra", "jwt_token");
-                    if (!string.IsNullOrEmpty(intentToken))
-                    {
-                        _accessToken = intentToken;
-                        PlayerPrefs.SetString(TOKEN_KEY, _accessToken);
-                        PlayerPrefs.Save();
-                        Debug.Log("[ApiClient] JWT received from Flutter Intent — user authenticated");
-                    }
+                    config.baseUrl = intentBaseUrl;
+                    Debug.Log("[ApiClient] Backend base URL refreshed from Flutter Intent: " + config.baseUrl);
+                }
+
+                if (string.IsNullOrEmpty(intentToken))
+                {
+                    return;
+                }
+
+                if (_accessToken != intentToken)
+                {
+                    _accessToken = intentToken;
+                    PlayerPrefs.SetString(TOKEN_KEY, _accessToken);
+                    PlayerPrefs.Save();
+                    Debug.Log("[ApiClient] JWT refreshed from Flutter Intent.");
                 }
             }
-            catch (Exception e)
-            {
-                Debug.LogWarning("[ApiClient] Could not read Intent extra: " + e.Message);
-            }
         }
-#endif
+        catch (Exception e)
+        {
+            Debug.LogWarning("[ApiClient] Could not read Intent extra: " + e.Message);
+        }
     }
+#endif
 
     // ──────────── HTTP Methods ────────────
 
@@ -131,7 +150,14 @@ public class ApiClient : MonoBehaviour
     public Coroutine UploadFile(string endpoint, byte[] fileData, string fileName,
         string fieldName, Action<ApiResponse> callback)
     {
-        return StartCoroutine(UploadFileCoroutine(endpoint, fileData, fileName, fieldName, callback));
+        return StartCoroutine(UploadFileCoroutine(endpoint, fileData, fileName, fieldName, null, callback));
+    }
+
+    /// <summary>Upload multipart form with file + text fields.</summary>
+    public Coroutine UploadMultipart(string endpoint, byte[] fileData, string fileName,
+        string fieldName, Dictionary<string, string> fields, Action<ApiResponse> callback)
+    {
+        return StartCoroutine(UploadFileCoroutine(endpoint, fileData, fileName, fieldName, fields, callback));
     }
 
     // ──────────── Core Request ────────────
@@ -139,6 +165,10 @@ public class ApiClient : MonoBehaviour
     private IEnumerator SendRequest(string method, string endpoint, string jsonBody,
         Action<ApiResponse> callback)
     {
+#if UNITY_ANDROID && !UNITY_EDITOR
+        TryLoadTokenFromFlutterIntent();
+#endif
+
         string url = config.GetFullUrl(endpoint);
         Debug.Log("[API] " + method + " " + url);
 
@@ -185,14 +215,27 @@ public class ApiClient : MonoBehaviour
             yield break;
         }
 
+        // Handle 429 — rate limited, retry once after short delay
+        if (response.statusCode == 429)
+        {
+            Debug.LogWarning("[API] Rate limited (429) — retrying after 2s");
+            yield return new WaitForSecondsRealtime(2f);
+            yield return StartCoroutine(SendRequest(method, endpoint, jsonBody, callback));
+            yield break;
+        }
+
         int previewLen = response.body != null ? Mathf.Min(200, response.body.Length) : 0;
         Debug.Log("[API] Response " + response.statusCode + ": " + (response.body != null ? response.body.Substring(0, previewLen) : ""));
         callback?.Invoke(response);
     }
 
     private IEnumerator UploadFileCoroutine(string endpoint, byte[] fileData, string fileName,
-        string fieldName, Action<ApiResponse> callback)
+        string fieldName, Dictionary<string, string> fields, Action<ApiResponse> callback)
     {
+#if UNITY_ANDROID && !UNITY_EDITOR
+        TryLoadTokenFromFlutterIntent();
+#endif
+
         string url = config.GetFullUrl(endpoint);
         Debug.Log("[API] UPLOAD " + url);
 
@@ -201,7 +244,19 @@ public class ApiClient : MonoBehaviour
             new MultipartFormFileSection(fieldName, fileData, fileName, "image/png")
         };
 
+        if (fields != null)
+        {
+            foreach (var kv in fields)
+            {
+                string value = kv.Value;
+                if (string.IsNullOrEmpty(value)) continue;
+                form.Add(new MultipartFormDataSection(kv.Key, value));
+                Debug.Log($"[API] Multipart field {kv.Key}={value}");
+            }
+        }
+
         UnityWebRequest request = UnityWebRequest.Post(url, form);
+        request.timeout = 30;
 
         if (!string.IsNullOrEmpty(_accessToken))
             request.SetRequestHeader("Authorization", "Bearer " + _accessToken);
@@ -217,6 +272,31 @@ public class ApiClient : MonoBehaviour
             error = request.error
         };
         request.Dispose();
+
+        if (response.statusCode == 401 && !string.IsNullOrEmpty(_refreshToken))
+        {
+            bool refreshed = false;
+            yield return StartCoroutine(TryRefreshToken(success => refreshed = success));
+
+            if (refreshed)
+            {
+                yield return StartCoroutine(UploadFileCoroutine(endpoint, fileData, fileName, fieldName, fields, callback));
+                yield break;
+            }
+        }
+
+        // Handle 429 — rate limited, retry once after short delay
+        if (response.statusCode == 429)
+        {
+            Debug.LogWarning("[API] Upload rate limited (429) — retrying after 2s");
+            yield return new WaitForSecondsRealtime(2f);
+            yield return StartCoroutine(UploadFileCoroutine(endpoint, fileData, fileName, fieldName, fields, callback));
+            yield break;
+        }
+
+        int previewLen = response.body != null ? Mathf.Min(200, response.body.Length) : 0;
+        Debug.Log("[API] Upload response " + response.statusCode + ": " +
+            (response.body != null ? response.body.Substring(0, previewLen) : response.error));
 
         callback?.Invoke(response);
     }
